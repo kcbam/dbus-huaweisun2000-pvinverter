@@ -48,7 +48,7 @@ If the number of seconds is always 0 or 1 or any other small number, it means th
 
 When you think that the script crashes, start it directly from the command line:
 
-`python /data/etc/dbus-huaweisun2000/dbus-huawei-sun2000-pvinverter.py`
+`python /data/etc/dbus-huaweisun2000/dbus-sun2000-pvinverter.py`
 
 and see if it throws any error messages.
 
