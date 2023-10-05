@@ -67,5 +67,8 @@ If you want to restart the script, for example after changing it, just run the f
 The daemon-tools will restart the scriptwithin a few seconds.
 
 # Thank you
-this project is inspired by 
+## Used libraries
+modified verion of https://github.com/olivergregorius/sun2000_modbus
+
+## this project is inspired by 
 https://github.com/RalfZim/venus.dbus-fronius-smartmeter
