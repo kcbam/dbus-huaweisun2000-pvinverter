@@ -6,7 +6,7 @@ dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
 
 1. Copy the files to the /data folder on your venus:
 
-   - /data/etc/dbus-huaweisun2000/dbus-fronius-smartmeter.py
+   - /data/etc/dbus-huaweisun2000/dbus-sun2000-pvinverter.py
    - /data/etc/dbus-huaweisun2000/kill_me.sh
    - /data/etc/dbus-huaweisun2000/service/run
 
