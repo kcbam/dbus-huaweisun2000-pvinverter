@@ -24,7 +24,7 @@ dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
 
 4. Add a symlink to the file /data/rc.local:
 
-   `ln -s /data/etc/dbus-huaweisun2000/service /service/dbus-huawei-sun2000-pvinverter`
+   `ln -s /data/etc/dbus-huaweisun2000/service /service/dbus-sun2000-pvinverter`
 
    Or if that file does not exist yet, store the file rc.local from this service on your Raspberry Pi as /data/rc.local .
    You can then create the symlink by just running rc.local:
@@ -38,11 +38,11 @@ dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
 
 You can check the status of the service with svstat:
 
-`svstat /service/dbus-huawei-sun2000-pvinverter`
+`svstat /service/dbus-sun2000-pvinverter`
 
 It will show something like this:
 
-`/service/dbus-huawei-sun2000-pvinverter: up (pid 10078) 325 seconds`
+`/service/dbus-sun2000-pvinverter: up (pid 10078) 325 seconds`
 
 If the number of seconds is always 0 or 1 or any other small number, it means that the service crashes and gets restarted all the time.
 
