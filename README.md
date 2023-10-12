@@ -13,7 +13,7 @@ dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
 2. Edit the config.ini file
     
 3. Run install.sh
-
+   `sh /data/etc/dbus-sun2000-pvinverter/install.sh`
 
 ### Debugging
 
