@@ -7,5 +7,5 @@ kill $(pgrep -f 'supervise dbus-sun2000-pvinverter')
 chmod a-x $SCRIPT_DIR/service/run
 $SCRIPT_DIR/restart.sh
 STARTUP=$SCRIPT_DIR/install.sh
-#sed -i "\~/data/etc/dbus-huaweisun2000/install.sh~d" $filename
+#sed -i "\~/data/etc/dbus-sun2000-pvinverter/install.sh~d" $filename
 sed -i "\~$STARTUP~d" $filename

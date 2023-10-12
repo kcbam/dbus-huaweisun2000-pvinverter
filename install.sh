@@ -1,7 +1,8 @@
 #!/bin/bash
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+echo "SCRIPT_DIR: $SCRIPT_DIR"
 SERVICE_NAME=$(basename $SCRIPT_DIR)
-
+echo "SERVICE_NAME: $SERVICE_NAME"
 # set permissions for script files
 chmod a+x $SCRIPT_DIR/restart.sh
 chmod 744 $SCRIPT_DIR/restart.sh
