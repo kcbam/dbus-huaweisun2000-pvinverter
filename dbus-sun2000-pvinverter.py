@@ -18,7 +18,7 @@ import sys
 import time
 import os
 import configparser
-from test import ModbusDataCollector2000Delux
+from dataconnector_modbus import ModbusDataCollector2000Delux
 
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
@@ -55,12 +55,10 @@ class DbusSun2000Service:
         self._dbusservice.add_path('/Connected', 1, writeable=True)
 
         # Create the mandatory objects
-        # self._dbusservice.add_path('/DeviceType',345)  # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
-        # self._dbusservice.add_path('/CustomName', "customname")
         self._dbusservice.add_path('/Latency', None)
         self._dbusservice.add_path('/Role', "pvinverter")
-        self._dbusservice.add_path('/Position', 0)  # self._getShellyPosition())  # normaly only needed for pvinverter
-        self._dbusservice.add_path('/Serial', "XXXXX1")  # self._getShellySerial())
+        self._dbusservice.add_path('/Position', 0)  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
+        self._dbusservice.add_path('/Serial', "X")
         self._dbusservice.add_path('/ErrorCode', 0)
         self._dbusservice.add_path('/UpdateIndex', 0)
         self._dbusservice.add_path('/StatusCode', 7)
