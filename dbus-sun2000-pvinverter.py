@@ -18,7 +18,7 @@ import sys
 import time
 import os
 import configparser
-from dataconnector_modbus import ModbusDataCollector2000Delux
+from connector_modbus import ModbusDataCollector2000Delux
 
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
