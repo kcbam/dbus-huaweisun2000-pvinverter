@@ -17,9 +17,23 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
    Info: The /data directory persists data on venus os devices while updating the firmware
 
-2. Edit the config.ini file
+   Easy way:
+   ```
+wget https://github.com/kc-bam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
+unzip main.zip "dbus-sun2000-pvinverter/*" -d /data/etc
+chmod a+x /data/etc/dbus-sun2000-pvinverter/install.sh
+rm main.zip
+```
+   
+
+3. Edit the config.ini file
+   `nano /data/etc/dbus-sun2000-pvinverter/config.ini`
+
+4. Check Modbus TCP Connection to gridinverter
+
+   `python /data/etc/dbus-sun2000-pvinverter/connector_modbus.py`
     
-3. Run install.sh
+5. Run install.sh
  
    `sh /data/etc/dbus-sun2000-pvinverter/install.sh`
 
