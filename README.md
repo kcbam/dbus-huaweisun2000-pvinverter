@@ -45,7 +45,9 @@ If you want to restart the script, for example after changing it, just run the f
 #### Uninstall the script
 
 Run
+
 `/data/etc/dbus-sun2000/uninstall.sh`
+
 `rm -r /data/etc/dbus-sun2000/`
 
 # Thank you
