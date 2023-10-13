@@ -1,38 +1,27 @@
 # dbus-huaweisun2000-pvinverter
 dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
 
+## Purpose
+
+This script is intended to help integrate a Huawei Sun 2000 inverter into the Venus OS and thus also into the VRM portal. 
+
+I use a Cerbo GX, which I have integrated via Ethernet in the house network. I used the WiFi of the device to connect to the internal WiFi of the Huawei Sun 2000. Attention: No extra dongle is necessary! You can use the integrated Wifi, which is actually intended for configuration with the Huawei app (Fusion App or Sun2000 App). The advantage is that no additional hardware needs to be purchased and the inverter does not need to be connected to the Internet.
+
+To further use the data, the mqtt broker from Venus OS can be used.
 
 ## Installation
 
-1. Copy the files to the /data folder on your venus:
+1. Copy the full project directory to the /data/etc folder on your venus:
 
-   - /data/etc/dbus-huaweisun2000/dbus-sun2000-pvinverter.py
-   - /data/etc/dbus-huaweisun2000/kill_me.sh
-   - /data/etc/dbus-huaweisun2000/service/run
+   - /data/etc/dbus-sun2000-pvinverter/
 
-2. Set permissions for files:
+   Info: The /data directory persists data on venus os devices while updating the firmware
 
-`chmod 755 /data/etc/dbus-huaweisun2000/service/run`
-
-`chmod 744 /data/etc/dbus-huaweisun2000/kill_me.sh`
-
-
-3. Get two files from the [velib_python](https://github.com/victronenergy/velib_python) and install them on your venus:
-
-   - /data/etc/dbus-huaweisun2000/vedbus.py
-   - /data/etc/dbus-huaweisun2000/ve_utils.py
-
-4. Add a symlink to the file /data/rc.local:
-
-   `ln -s /data/etc/dbus-huaweisun2000/service /service/dbus-sun2000-pvinverter`
-
-   Or if that file does not exist yet, store the file rc.local from this service on your Raspberry Pi as /data/rc.local .
-   You can then create the symlink by just running rc.local:
-  
-   `rc.local`
-
-   The daemon-tools should automatically start this service within seconds.
-
+2. Edit the config.ini file
+    
+3. Run install.sh
+ 
+   `sh /data/etc/dbus-sun2000-pvinverter/install.sh`
 
 ### Debugging
 
@@ -48,23 +37,25 @@ If the number of seconds is always 0 or 1 or any other small number, it means th
 
 When you think that the script crashes, start it directly from the command line:
 
-`python /data/etc/dbus-huaweisun2000/dbus-sun2000-pvinverter.py`
+`python /data/etc/dbus-sun2000/dbus-sun2000-pvinverter.py`
 
-and see if it throws any error messages.
+Also useful:
 
-If the script stops with the message
-
-`dbus.exceptions.NameExistsException: Bus name already exists: com.victronenergy.grid"`
-
-it means that the service is still running or another service is using that bus name.
+`tail -f /var/log/dbus-sun2000/current | tai64nlocal`
 
 #### Restart the script
 
 If you want to restart the script, for example after changing it, just run the following command:
 
-`/data/etc/dbus-huaweisun2000/kill_me.sh`
+`/data/etc/dbus-sun2000/restart.sh`
 
-The daemon-tools will restart the scriptwithin a few seconds.
+#### Uninstall the script
+
+Run
+
+`/data/etc/dbus-sun2000/uninstall.sh`
+
+`rm -r /data/etc/dbus-sun2000/`
 
 # Thank you
 ## Used libraries
