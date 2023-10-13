@@ -32,13 +32,9 @@ When you think that the script crashes, start it directly from the command line:
 
 `python /data/etc/dbus-sun2000/dbus-sun2000-pvinverter.py`
 
-and see if it throws any error messages.
+Also useful:
 
-If the script stops with the message
-
-`dbus.exceptions.NameExistsException: Bus name already exists: com.victronenergy.grid"`
-
-it means that the service is still running or another service is using that bus name.
+`tail -f /var/log/dbus-sun2000/current | tai64nlocal`
 
 #### Restart the script
 
