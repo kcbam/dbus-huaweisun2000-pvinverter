@@ -27,13 +27,14 @@ To further use the data, the mqtt broker from Venus OS can be used.
    
 
 3. Edit the config.ini file
+   
    `nano /data/etc/dbus-sun2000-pvinverter/config.ini`
 
-4. Check Modbus TCP Connection to gridinverter
+5. Check Modbus TCP Connection to gridinverter
 
    `python /data/etc/dbus-sun2000-pvinverter/connector_modbus.py`
     
-5. Run install.sh
+6. Run install.sh
  
    `sh /data/etc/dbus-sun2000-pvinverter/install.sh`
 
@@ -61,13 +62,13 @@ Also useful:
 
 If you want to restart the script, for example after changing it, just run the following command:
 
-`/data/etc/dbus-sun2000/restart.sh`
+`sh /data/etc/dbus-sun2000/restart.sh`
 
 #### Uninstall the script
 
 Run
 
-`/data/etc/dbus-sun2000/uninstall.sh`
+`sh /data/etc/dbus-sun2000/uninstall.sh`
 
 `rm -r /data/etc/dbus-sun2000/`
 
