@@ -5,15 +5,15 @@ class ModbusDataCollector2000Delux:
     def __init__(self, host='192.168.200.1', port=6607):
         self.invSun2000 = inverter.Sun2000(host=host, port=port)
 
-    def isConnected(self):
-        return
+    # def isConnected(self):
+    #     return
 
     def getData(self):
         if not self.invSun2000.isConnected():
             try:
                 self.invSun2000.connect()
             except:
-                print("Mist, Verbinden geht nicht!!")
+                print("Connections Error Modbus TCP")
 
         data = {}
 
@@ -24,18 +24,14 @@ class ModbusDataCollector2000Delux:
             '/Ac/L1/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseActivePower},
             '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
             '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
-            # '/Ac/L1/Energy/Forward': {'initial': None, sun2000": registers.MeterEquipmentRegister.APha},
             '/Ac/L2/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseActivePower},
             '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
             '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
-            # '/Ac/L2/Energy/Forward': {'initial': None, sun2000": registers.InverterEquipmentRegister.},
             '/Ac/L3/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseActivePower},
             '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
             '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
             '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
-            # '/Ac/L3/Energy/Forward': {'initial': None, sun2000": registers.InverterEquipmentRegister.},
             '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
-            # '/Ac/Position': {'initial': int(config['PV']['position']), sun2000": registers.InverterEquipmentRegister.},
         }
 
         for k, v in dbuspath.items():
@@ -58,6 +54,30 @@ class ModbusDataCollector2000Delux:
         data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage'] * float(data['/Ac/L3/Current']))
 
         return data
+
+    def getStaticData(self):
+        if not self.invSun2000.isConnected():
+            try:
+                self.invSun2000.connect()
+            except:
+                print("Connections Error Modbus TCP")
+                return None
+        try:
+            data={}
+            data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
+            data['ModelID'] = self.invSun2000.read(registers.InverterEquipmentRegister.ModelID)
+            model = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model))
+            model.rstrip('\x00')
+            data['Model'] = model
+
+            data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
+            data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
+            return  data
+
+        except:
+            print("Problem while getting static data modbus TCP")
+            return None
+
 
 ## Just for testing ##
 if __name__ == "__main__":

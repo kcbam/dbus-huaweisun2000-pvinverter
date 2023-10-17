@@ -12,7 +12,6 @@ https://github.com/victronenergy/dbus_vebus_to_pvinverter/tree/master/test
 """
 from gi.repository import GLib
 import platform
-import argparse
 import logging
 import sys
 import time
@@ -26,18 +25,16 @@ from vedbus import VeDbusService
 
 
 class DbusSun2000Service:
-    def __init__(self, servicename, deviceinstance, paths, data_connector, productname='Huawei Sun2000 PV-Inverter',
+    def __init__(self, servicename, deviceinstance, paths, data_connector, serialnumber='X', productname='Huawei Sun2000 PV-Inverter',
                  connection='Internal Wifi Modbus TCP' ):
         self._dbusservice = VeDbusService(servicename)
         self._paths = paths
+        # self._serialnumber = serialnumber
         self._data_connector = data_connector
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
-        # Most simple and short way to add an object with an initial value of 5.
-        # self._dbusservice.add_path('/Ac/Power', value=1000, description='Total power', writeable=False)
-        # self._dbusservice.add_path('/DeviceType', value=1000, description='Total power', writeable=False)
-        # Add objects required by ve-api
+        productname="Huawei Sun2000" #tmp please del
 
         # Create the management objects, as specified in the ccgx dbus-api document
         self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -47,8 +44,7 @@ class DbusSun2000Service:
 
         # Create the mandatory objects
         self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-        # self._dbusservice.add_path('/ProductId', 1442184)  #hopefully free
-        self._dbusservice.add_path('/ProductId', 41283 )  # hopefully free
+        self._dbusservice.add_path('/ProductId', 41284 )  #Huawei does not have a product id, this is SunSpec solar inverters
         self._dbusservice.add_path('/ProductName', productname)
         self._dbusservice.add_path('/FirmwareVersion', 1.0)
         self._dbusservice.add_path('/HardwareVersion', 0)
@@ -58,7 +54,7 @@ class DbusSun2000Service:
         self._dbusservice.add_path('/Latency', None)
         self._dbusservice.add_path('/Role', "pvinverter")
         self._dbusservice.add_path('/Position', 0)  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
-        self._dbusservice.add_path('/Serial', "X")
+        self._dbusservice.add_path('/Serial', serialnumber)
         self._dbusservice.add_path('/ErrorCode', 0)
         self._dbusservice.add_path('/UpdateIndex', 0)
         self._dbusservice.add_path('/StatusCode', 7)
@@ -123,6 +119,7 @@ def main():
     config.read(f"{(os.path.dirname(os.path.realpath(__file__)))}/config.ini")
 
     modbus = ModbusDataCollector2000Delux(port=6607) #TODO CONFIGFILE
+    staticdata = modbus.getStaticData()
 
     logging_level = config["SUN2000"]["Logging"].upper()
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -177,18 +174,20 @@ def main():
             '/Dc/Power': {'initial': 0, 'textformat': _w},
         }
 
+        print(f"TEEEESSTTTT::::: MODEL: {staticdata['Model']} TEST")
+
         pvac_output = DbusSun2000Service(
             servicename='com.victronenergy.pvinverter.sun2000',
             deviceinstance=int(config["SUN2000"]["DeviceInstance"]),
             paths=dbuspath,
+            productname=staticdata['Model'],
+            serialnumber=staticdata['SN'],
             data_connector=modbus
         )
 
         logging.info('Connected to dbus, and switching over to GLib.MainLoop() (= event based)')
         mainloop = GLib.MainLoop()
         mainloop.run()
-    # except (ValueError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-    #     logging.critical('Error in main type %s', str(e))
     except Exception as e:
         logging.critical('Error at %s', 'main', exc_info=e)
 
