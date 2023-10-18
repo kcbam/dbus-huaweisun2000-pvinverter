@@ -43,11 +43,11 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 You can check the status of the service with svstat:
 
-`svstat /service/dbus-sun2000-pvinverter`
+`svstat /service/dbus-huaweisun2000-pvinverter`
 
 It will show something like this:
 
-`/service/dbus-sun2000-pvinverter: up (pid 10078) 325 seconds`
+`/service/dbus-huaweisun2000-pvinverter: up (pid 10078) 325 seconds`
 
 If the number of seconds is always 0 or 1 or any other small number, it means that the service crashes and gets restarted all the time.
 
@@ -57,7 +57,7 @@ When you think that the script crashes, start it directly from the command line:
 
 Also useful:
 
-`tail -f /var/log/dbus-sun2000/current | tai64nlocal`
+`tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
 
 #### Restart the script
 
