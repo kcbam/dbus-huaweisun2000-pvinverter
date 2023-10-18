@@ -34,7 +34,7 @@ class DbusSun2000Service:
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
-        productname="Huawei Sun2000" #tmp please del
+        # productname="Huawei Sun2000" #tmp please del
 
         # Create the management objects, as specified in the ccgx dbus-api document
         self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -180,7 +180,7 @@ def main():
             servicename='com.victronenergy.pvinverter.sun2000',
             deviceinstance=int(config["SUN2000"]["DeviceInstance"]),
             paths=dbuspath,
-            productname=staticdata['Model'],
+            # productname=staticdata['Model'],
             serialnumber=staticdata['SN'],
             data_connector=modbus
         )
