@@ -19,8 +19,8 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
    Easy way:
    ```
-   wget https://github.com/kc-bam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
-   unzip main.zip "dbus-sun2000-pvinverter/*" -d /data
+   wget https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
+   unzip main.zip "dbus-huaweisun2000-pvinverter/*" -d /data
    chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
    rm main.zip
    ```
