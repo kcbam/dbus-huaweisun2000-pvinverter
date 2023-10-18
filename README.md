@@ -13,30 +13,30 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 1. Copy the full project directory to the /data/etc folder on your venus:
 
-   - /data/etc/dbus-sun2000-pvinverter/
+   - /data/dbus-huaweisun2000-pvinverter/
 
    Info: The /data directory persists data on venus os devices while updating the firmware
 
    Easy way:
    ```
    wget https://github.com/kc-bam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
-   unzip main.zip "dbus-sun2000-pvinverter/*" -d /data/etc
-   chmod a+x /data/etc/dbus-sun2000-pvinverter/install.sh
+   unzip main.zip "dbus-sun2000-pvinverter/*" -d /data
+   chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
    rm main.zip
    ```
    
 
 3. Edit the config.ini file
    
-   `nano /data/etc/dbus-sun2000-pvinverter/config.ini`
+   `nano /data/dbus-huaweisun2000-pvinverter/config.ini`
 
 5. Check Modbus TCP Connection to gridinverter
 
-   `python /data/etc/dbus-sun2000-pvinverter/connector_modbus.py`
+   `python /data/dbus-huaweisun2000-pvinverter/connector_modbus.py`
     
 6. Run install.sh
  
-   `sh /data/etc/dbus-sun2000-pvinverter/install.sh`
+   `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
 
 ### Debugging
 
@@ -52,7 +52,7 @@ If the number of seconds is always 0 or 1 or any other small number, it means th
 
 When you think that the script crashes, start it directly from the command line:
 
-`python /data/etc/dbus-sun2000/dbus-sun2000-pvinverter.py`
+`python /data/dbus-huaweisun2000/dbus-sun2000-pvinverter.py`
 
 Also useful:
 
@@ -62,15 +62,15 @@ Also useful:
 
 If you want to restart the script, for example after changing it, just run the following command:
 
-`sh /data/etc/dbus-sun2000/restart.sh`
+`sh /data/dbus-huaweisun2000/restart.sh`
 
 #### Uninstall the script
 
 Run
 
-`sh /data/etc/dbus-sun2000/uninstall.sh`
+`sh /data/dbus-huaweisun2000/uninstall.sh`
 
-`rm -r /data/etc/dbus-sun2000/`
+`rm -r /data/dbus-huaweisun2000/`
 
 # Thank you
 ## Used libraries
