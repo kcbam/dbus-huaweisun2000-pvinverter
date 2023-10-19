@@ -9,6 +9,15 @@ I use a Cerbo GX, which I have integrated via Ethernet in the house network. I u
 
 To further use the data, the mqtt broker from Venus OS can be used.
 
+## Todo
+
+   - better logging
+   - find out why the most values are missing in the view
+   - repair modelname
+   - clean code
+
+Cooming soon
+
 ## Installation
 
 1. Copy the full project directory to the /data/etc folder on your venus:
@@ -20,7 +29,8 @@ To further use the data, the mqtt broker from Venus OS can be used.
    Easy way:
    ```
    wget https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
-   unzip main.zip "dbus-huaweisun2000-pvinverter/*" -d /data
+   unzip main.zip -d /data
+   mv /data/dbus-huaweisun2000-pvinverter-main /data/dbus-huaweisun2000-pvinverter
    chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
    rm main.zip
    ```
@@ -42,11 +52,11 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 You can check the status of the service with svstat:
 
-`svstat /service/dbus-sun2000-pvinverter`
+`svstat /service/dbus-huaweisun2000-pvinverter`
 
 It will show something like this:
 
-`/service/dbus-sun2000-pvinverter: up (pid 10078) 325 seconds`
+`/service/dbus-huaweisun2000-pvinverter: up (pid 10078) 325 seconds`
 
 If the number of seconds is always 0 or 1 or any other small number, it means that the service crashes and gets restarted all the time.
 
@@ -56,15 +66,15 @@ When you think that the script crashes, start it directly from the command line:
 
 Also useful:
 
-`tail -f /var/log/dbus-sun2000/current | tai64nlocal`
+`tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
 
-#### Restart the script
+### Restart the script
 
 If you want to restart the script, for example after changing it, just run the following command:
 
 `sh /data/dbus-huaweisun2000/restart.sh`
 
-#### Uninstall the script
+## Uninstall the script
 
 Run
 
@@ -78,3 +88,4 @@ modified verion of https://github.com/olivergregorius/sun2000_modbus
 
 ## this project is inspired by 
 https://github.com/RalfZim/venus.dbus-fronius-smartmeter
+https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git
