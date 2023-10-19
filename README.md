@@ -9,6 +9,15 @@ I use a Cerbo GX, which I have integrated via Ethernet in the house network. I u
 
 To further use the data, the mqtt broker from Venus OS can be used.
 
+## Todo
+
+   - better logging
+   - find out why the most values are missing in the view
+   - repair modelname
+   - clean code
+
+Cooming soon
+
 ## Installation
 
 1. Copy the full project directory to the /data/etc folder on your venus:
