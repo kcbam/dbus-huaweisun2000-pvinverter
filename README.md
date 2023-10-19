@@ -16,11 +16,11 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 ## Todo
 
--[ ] better logging
--[ ] find out why the most values are missing in the view
--[ ] repair modelname
+- [ ] better logging
+- [x] find out why the most values are missing in the view
+- [x] repair modelname (custom name in config)
 - [ ] alarm, state
--[ ] more values: temperature, efficiency
+- [ ] more values: temperature, efficiency
 - [ ] clean code
 
 Cooming soon
