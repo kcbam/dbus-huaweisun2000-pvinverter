@@ -16,7 +16,7 @@ import logging
 import sys
 import time
 import os
-import configparser
+import config
 from connector_modbus import ModbusDataCollector2000Delux
 
 # our own packages from victron
@@ -25,8 +25,9 @@ from vedbus import VeDbusService
 
 
 class DbusSun2000Service:
-    def __init__(self, servicename, deviceinstance, paths, data_connector, serialnumber='X', productname='Huawei Sun2000 PV-Inverter',
-                 connection='Internal Wifi Modbus TCP' ):
+    def __init__(self, servicename, deviceinstance, position, paths, data_connector, serialnumber='X',
+                 productname='Huawei Sun2000 PV-Inverter',
+                 connection='Internal Wifi Modbus TCP'):
         self._dbusservice = VeDbusService(servicename)
         self._paths = paths
         # self._serialnumber = serialnumber
@@ -44,7 +45,8 @@ class DbusSun2000Service:
 
         # Create the mandatory objects
         self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-        self._dbusservice.add_path('/ProductId', 41284 )  #Huawei does not have a product id, this is SunSpec solar inverters
+        self._dbusservice.add_path('/ProductId',
+                                   41284)  # Huawei does not have a product id, this is SunSpec solar inverters
         self._dbusservice.add_path('/ProductName', productname)
         self._dbusservice.add_path('/FirmwareVersion', 1.0)
         self._dbusservice.add_path('/HardwareVersion', 0)
@@ -53,7 +55,7 @@ class DbusSun2000Service:
         # Create the mandatory objects
         self._dbusservice.add_path('/Latency', None)
         self._dbusservice.add_path('/Role', "pvinverter")
-        self._dbusservice.add_path('/Position', 0)  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
+        self._dbusservice.add_path('/Position', position)  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
         self._dbusservice.add_path('/Serial', serialnumber)
         self._dbusservice.add_path('/ErrorCode', 0)
         self._dbusservice.add_path('/UpdateIndex', 0)
@@ -61,31 +63,24 @@ class DbusSun2000Service:
 
         for path, settings in self._paths.items():
             self._dbusservice.add_path(
-                path, settings['initial'], gettextcallback=settings['textformat'], writeable=True, onchangecallback=self._handlechangedvalue)
+                path, settings['initial'], gettextcallback=settings['textformat'], writeable=True,
+                onchangecallback=self._handlechangedvalue)
 
         GLib.timeout_add(1000, self._update)  # pause 500ms before the next request
-
 
     def _update(self):
         with self._dbusservice as s:
 
             try:
-
                 meter_data = self._data_connector.getData()
 
                 for k, v in meter_data.items():
                     logging.info(f"set {k} to {v}")
                     s[k] = v
 
-
-                # logging
-                logging.debug("House Consumption (/Ac/Power): %s" % (s['/Ac/Power']))
-                logging.debug("House Forward (/Ac/Energy/Forward): %s" % (s['/Ac/Energy/Forward']))
-                logging.debug("---");
-
                 # increment UpdateIndex - to show that new data is available an wrap
                 s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
-                #
+
                 # update lastupdate vars
                 self._lastUpdate = time.time()
 
@@ -112,23 +107,14 @@ class DbusSun2000Service:
 # See their manual to explain the % in %20
 
 def main():
-    # logging.basicConfig(level=logging.DEBUG)
-    # configure logging
-    print("Halle Welt!!!")
-    config = configparser.ConfigParser()
-    config.read(f"{(os.path.dirname(os.path.realpath(__file__)))}/config.ini")
 
-    modbus = ModbusDataCollector2000Delux(port=6607) #TODO CONFIGFILE
+    modbus = ModbusDataCollector2000Delux(port=config.PORT)  # New:6607 old: 502
     staticdata = modbus.getStaticData()
 
-    logging_level = config["SUN2000"]["Logging"].upper()
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        level= logging.DEBUG, #TODO CON
+                        level=config.LOGGING,
                         handlers=[
-                            logging.FileHandler("%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))),
-                            #logging.FileHandler("/tmp/current.log"),
-
                             logging.StreamHandler()
                         ])
     try:
@@ -151,7 +137,7 @@ def main():
             '/Ac/Current': {'initial': 0, 'textformat': _a},
             '/Ac/Voltage': {'initial': 0, 'textformat': _v},
             '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
-
+            #
             '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
             '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
             '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
@@ -159,7 +145,6 @@ def main():
             '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
             #
             '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
-            # # '/Ac/Position': {'initial': int(config['PV']['position']), 'textformat': _n},
             '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
             '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
             '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
@@ -178,7 +163,8 @@ def main():
 
         pvac_output = DbusSun2000Service(
             servicename='com.victronenergy.pvinverter.sun2000',
-            deviceinstance=int(config["SUN2000"]["DeviceInstance"]),
+            deviceinstance=config.DEVICE_INSTANCE,
+            position=config.POSITION,
             paths=dbuspath,
             # productname=staticdata['Model'],
             serialnumber=staticdata['SN'],
