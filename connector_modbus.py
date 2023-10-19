@@ -1,6 +1,8 @@
 from sun2000_modbus import inverter
 from sun2000_modbus import registers
 
+import config
+
 class ModbusDataCollector2000Delux:
     def __init__(self, host='192.168.200.1', port=6607):
         self.invSun2000 = inverter.Sun2000(host=host, port=port)
@@ -81,17 +83,9 @@ class ModbusDataCollector2000Delux:
 
 ## Just for testing ##
 if __name__ == "__main__":
-    modbus = ModbusDataCollector2000Delux()
-
-    inverter = inverter.Sun2000(host='192.168.200.1', port=6607)
+    inverter = inverter.Sun2000(host=config.HOST, port=config.PORT)
     inverter.connect()
     if inverter.isConnected():
-    #     input_power = inverter.read_formatted(registers.InverterEquipmentRegister.InputPower)
-    #     print(input_power)
-    #     activ_power = inverter.read_formatted(registers.InverterEquipmentRegister.ActivePower)
-    #     print(f"Active Power: {activ_power}")
-    #     print(f"A Phase Voltage InverterEquipmentReg: {inverter.read_formatted(registers.InverterEquipmentRegister.PhaseAVoltage)}")
-    #     print(f"A Phase Voltage MeterEquipmentReg: {inverter.read_formatted(registers.MeterEquipmentRegister.APhaseVoltage)}")
 
         attrs = (getattr(registers.InverterEquipmentRegister, name) for name in dir(registers.InverterEquipmentRegister))
         datata = dict()
