@@ -26,11 +26,9 @@ from vedbus import VeDbusService
 
 class DbusSun2000Service:
     def __init__(self, servicename, deviceinstance, position, paths, data_connector, serialnumber='X',
-                 productname='Huawei Sun2000 PV-Inverter',
-                 connection='Internal Wifi Modbus TCP'):
+                 productname='Huawei Sun2000 PV-Inverter'):
         self._dbusservice = VeDbusService(servicename)
-        self._paths = paths
-        # self._serialnumber = serialnumber
+        # self._paths = paths
         self._data_connector = data_connector
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
@@ -41,13 +39,14 @@ class DbusSun2000Service:
         self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
         self._dbusservice.add_path('/Mgmt/ProcessVersion',
                                    'Unkown version, and running on Python ' + platform.python_version())
-        self._dbusservice.add_path('/Mgmt/Connection', connection)
+        self._dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
 
         # Create the mandatory objects
         self._dbusservice.add_path('/DeviceInstance', deviceinstance)
         self._dbusservice.add_path('/ProductId',
                                    41284)  # Huawei does not have a product id, this is SunSpec solar inverters
         self._dbusservice.add_path('/ProductName', productname)
+        self._dbusservice.add_path('/CustomName', config.CUSTOM_NAME if hasattr(config, 'CUSTOM_NAME') else None)
         self._dbusservice.add_path('/FirmwareVersion', 1.0)
         self._dbusservice.add_path('/HardwareVersion', 0)
         self._dbusservice.add_path('/Connected', 1, writeable=True)
@@ -61,7 +60,7 @@ class DbusSun2000Service:
         self._dbusservice.add_path('/UpdateIndex', 0)
         self._dbusservice.add_path('/StatusCode', 7)
 
-        for path, settings in self._paths.items():
+        for path, settings in paths.items():
             self._dbusservice.add_path(
                 path, settings['initial'], gettextcallback=settings['textformat'], writeable=True,
                 onchangecallback=self._handlechangedvalue)
@@ -95,7 +94,6 @@ class DbusSun2000Service:
 
 
 def main():
-
     modbus = ModbusDataCollector2000Delux(host = config.HOST, port=config.PORT)  # New:6607 old: 502
     staticdata = modbus.getStaticData()
 
@@ -154,7 +152,7 @@ def main():
             deviceinstance=config.DEVICE_INSTANCE,
             position=config.POSITION,
             paths=dbuspath,
-            # productname=staticdata['Model'],
+            productname=staticdata['Model'].replace('\0',' '),
             serialnumber=staticdata['SN'],
             data_connector=modbus
         )
