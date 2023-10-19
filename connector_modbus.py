@@ -21,8 +21,6 @@ class ModbusDataCollector2000Delux:
 
         dbuspath = {
             '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
-            '/Ac/Energy/Forward': {'initial': None,
-                                   "sun2000": registers.InverterEquipmentRegister.AccumulatedEnergyYield},
             '/Ac/L1/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseActivePower},
             '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
             '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
@@ -45,15 +43,22 @@ class ModbusDataCollector2000Delux:
         # statuscode =
         # data['/Ac/StatusCode'] = statuscode
 
+        energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
+        data['/Ac/Energy/Forward'] = energy_forward
+        # There is no Modbus register for the phases
+        data['/Ac/L1/Energy/Forward'] = round(energy_forward/3.0, 2)
+        data['/Ac/L2/Energy/Forward'] = round(energy_forward/3.0, 2)
+        data['/Ac/L3/Energy/Forward'] = round(energy_forward/3.0, 2)
+
         freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
         data['/Ac/L1/Frequency'] = freq
         data['/Ac/L2/Frequency'] = freq
         data['/Ac/L3/Frequency'] = freq
 
         cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
-        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage'] * float(data['/Ac/L1/Current']))
-        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage'] * float(data['/Ac/L2/Current']))
-        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage'] * float(data['/Ac/L3/Current']))
+        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
+        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
         return data
 
