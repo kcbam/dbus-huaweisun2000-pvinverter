@@ -68,13 +68,13 @@ Also useful:
 
 `tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
 
-#### Restart the script
+### Restart the script
 
 If you want to restart the script, for example after changing it, just run the following command:
 
 `sh /data/dbus-huaweisun2000/restart.sh`
 
-#### Uninstall the script
+## Uninstall the script
 
 Run
 
@@ -88,3 +88,4 @@ modified verion of https://github.com/olivergregorius/sun2000_modbus
 
 ## this project is inspired by 
 https://github.com/RalfZim/venus.dbus-fronius-smartmeter
+https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git
