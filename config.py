@@ -18,3 +18,6 @@ POSITION = 0
 
 # Loglevel: INFO, DEBUG, ERROR
 LOGGING = logging.DEBUG
+
+# Time between calling the update method
+UPDATE_TIME_IN_MS=1000
