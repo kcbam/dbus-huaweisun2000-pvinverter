@@ -22,5 +22,5 @@ LOGGING = logging.DEBUG
 # Time between calling the update method
 UPDATE_TIME_IN_MS=1000
 
-# power correction factor per phase (in case a little calibration is needed) Range: 0 < x < 1
+# power correction factor per phase (in case a little calibration is needed)
 POWER_CORRECTION_FACTOR = 0.995
