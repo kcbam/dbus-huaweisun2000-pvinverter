@@ -73,10 +73,7 @@ class ModbusDataCollector2000Delux:
             data={}
             data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
             data['ModelID'] = self.invSun2000.read(registers.InverterEquipmentRegister.ModelID)
-            model = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model))
-            model.rstrip('\x00')
-            data['Model'] = model
-
+            data['Model'] = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model)).replace('\0','')
             data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
             data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
             return  data

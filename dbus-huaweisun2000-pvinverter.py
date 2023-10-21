@@ -43,8 +43,7 @@ class DbusSun2000Service:
 
         # Create the mandatory objects
         self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-        self._dbusservice.add_path('/ProductId',
-                                   41284)  # Huawei does not have a product id, this is SunSpec solar inverters
+        self._dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
         self._dbusservice.add_path('/ProductName', productname)
         self._dbusservice.add_path('/CustomName', config.CUSTOM_NAME if hasattr(config, 'CUSTOM_NAME') else None)
         self._dbusservice.add_path('/FirmwareVersion', 1.0)
@@ -145,14 +144,12 @@ def main():
             '/Dc/Power': {'initial': 0, 'textformat': _w},
         }
 
-        print(f"TEEEESSTTTT::::: MODEL: {staticdata['Model']} TEST")
-
         pvac_output = DbusSun2000Service(
             servicename='com.victronenergy.pvinverter.sun2000',
             deviceinstance=config.DEVICE_INSTANCE,
             position=config.POSITION,
             paths=dbuspath,
-            productname=staticdata['Model'].replace('\0',' '),
+            productname=staticdata['Model'],
             serialnumber=staticdata['SN'],
             data_connector=modbus
         )
