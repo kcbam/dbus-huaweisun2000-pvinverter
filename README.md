@@ -91,6 +91,13 @@ sh /data/dbus-huaweisun2000/uninstall.sh
 rm -r /data/dbus-huaweisun2000/
    ```
 
+# Examples
+
+![VRM-01](img/VRM-01.png)
+
+![VRM-02](img/VRM-02.png)
+
+
 # Thank you
 
 ## Used libraries
@@ -103,3 +110,4 @@ https://github.com/RalfZim/venus.dbus-fronius-smartmeter
 
 https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git
 
+https://github.com/victronenergy/velib_python.git
