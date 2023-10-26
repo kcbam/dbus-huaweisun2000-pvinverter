@@ -70,7 +70,7 @@ restarted all the time.
 
 When you think that the script crashes, start it directly from the command line:
 
-`python /data/dbus-huaweisun2000/dbus-sun2000-pvinverter.py`
+`python /data/dbus-huaweisun2000-pvinverter/dbus-sun2000-pvinverter.py`
 
 Also useful:
 
@@ -80,15 +80,15 @@ Also useful:
 
 If you want to restart the script, for example after changing it, just run the following command:
 
-`sh /data/dbus-huaweisun2000/restart.sh`
+`sh /data/dbus-huaweisun2000-pvinverter/restart.sh`
 
 ## Uninstall the script
 
 Run
 
    ```
-sh /data/dbus-huaweisun2000/uninstall.sh
-rm -r /data/dbus-huaweisun2000/
+sh /data/dbus-huaweisun2000-pvinverter/uninstall.sh
+rm -r /data/dbus-huaweisun2000-pvinverter/
    ```
 
 # Examples
