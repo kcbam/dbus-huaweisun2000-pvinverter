@@ -43,7 +43,7 @@ Cooming soon
    ```
 
 
-3. Edit the config.ini file
+3. Edit the config.py file
 
    `nano /data/dbus-huaweisun2000-pvinverter/config.py`
 
