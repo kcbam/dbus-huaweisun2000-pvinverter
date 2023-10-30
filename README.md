@@ -70,7 +70,7 @@ restarted all the time.
 
 When you think that the script crashes, start it directly from the command line:
 
-`python /data/dbus-huaweisun2000-pvinverter/dbus-sun2000-pvinverter.py`
+`python /data/dbus-huaweisun2000-pvinverter/dbus-huaweisun2000-pvinverter.py`
 
 Also useful:
 
