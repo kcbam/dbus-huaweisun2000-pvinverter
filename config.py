@@ -7,6 +7,9 @@ HOST = "192.168.200.1"
 # Default Port: 6607 / Old firmware has 502
 PORT = 6607
 
+# Default modbus unit: 0 (may need 1 for some inverters or even higher number if using a SmartLogger)
+MODBUS_UNIT = 0
+
 # Uncomment for no custom name
 CUSTOM_NAME = "Huawei SUN2000"
 

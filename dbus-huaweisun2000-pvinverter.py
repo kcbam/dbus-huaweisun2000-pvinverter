@@ -93,7 +93,7 @@ class DbusSun2000Service:
 
 
 def main():
-    modbus = ModbusDataCollector2000Delux(host = config.HOST, port=config.PORT)  # New:6607 old: 502
+    modbus = ModbusDataCollector2000Delux(host = config.HOST, port=config.PORT, modbus_unit=config.MODBUS_UNIT)
     staticdata = modbus.getStaticData()
 
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',

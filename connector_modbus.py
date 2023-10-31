@@ -4,8 +4,8 @@ from sun2000_modbus import registers
 import config
 
 class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607):
-        self.invSun2000 = inverter.Sun2000(host=host, port=port)
+    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0):
+        self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit)
 
     # def isConnected(self):
     #     return
@@ -85,7 +85,9 @@ class ModbusDataCollector2000Delux:
 
 ## Just for testing ##
 if __name__ == "__main__":
-    inverter = inverter.Sun2000(host=config.HOST, port=config.PORT)
+    if not hasattr(config, 'MODBUS_UNIT'):
+        config.MODBUS_UNIT = 0
+    inverter = inverter.Sun2000(host=config.HOST, port=config.PORT, modbus_unit=config.MODBUS_UNIT)
     inverter.connect()
     if inverter.isConnected():
 
