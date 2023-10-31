@@ -16,7 +16,7 @@ chmod 755 $SCRIPT_DIR/service/run
 chmod a+x $SCRIPT_DIR/service/log/run
 
 # create sym-link to run script in deamon
-ln -s $SCRIPT_DIR/service /service/$SERVICE_NAME
+ln -sfn $SCRIPT_DIR/service /service/$SERVICE_NAME
 
 # add install-script to rc.local to be ready for firmware update
 filename=/data/rc.local
