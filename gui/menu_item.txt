@@ -1,0 +1,10 @@
+                // dbus-huaweisun2000 start
+                MbSubMenu {
+                        id: menuHuaweiSUN2000
+                        description: qsTr("Huawei SUN2000")
+                        subpage: Component {
+                                PageSettingsHuaweiSUN2000 { }
+                        }
+                }
+                // dbus-huaweisun2000 end
+
