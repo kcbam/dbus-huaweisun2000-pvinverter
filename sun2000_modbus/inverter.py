@@ -25,6 +25,8 @@ class Sun2000:
             else:
                 logging.error('Connection to inverter failed')
                 return False
+        else:
+            return True
 
     def disconnect(self):
         """Close the underlying tcp socket"""
