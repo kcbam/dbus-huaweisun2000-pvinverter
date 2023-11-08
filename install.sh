@@ -29,3 +29,19 @@ then
 fi
 
 grep -qxF "$SCRIPT_DIR/install.sh" $filename || echo "$SCRIPT_DIR/install.sh" >> $filename
+
+# The "PV inverters" page in Settings is somewhat specific for Fronius. Let's change that.
+invertersSettingsFile="/opt/victronenergy/gui/qml/PageSettingsFronius.qml"
+
+if (( $(grep -c "PageSettingsHuaweiSUN2000" $invertersSettingsFile) > 0)); then
+    echo "INFO: $invertersSettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+else
+    echo "INFO: Adding menu entry to $invertersSettingsFile"
+    sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
+fi
+
+cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
+
+# As we've modified the GUI, we need to restart it
+svc -t /service/gui
+

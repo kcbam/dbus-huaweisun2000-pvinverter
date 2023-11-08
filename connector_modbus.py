@@ -1,21 +1,20 @@
 from sun2000_modbus import inverter
 from sun2000_modbus import registers
 
-import config
+from dbus.mainloop.glib import DBusGMainLoop
+
+from settings import HuaweiSUN2000Settings
 
 class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0):
+    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995):
         self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit)
-
-    # def isConnected(self):
-    #     return
+        self.power_correction_factor = power_correction_factor
 
     def getData(self):
-        if not self.invSun2000.isConnected():
-            try:
-                self.invSun2000.connect()
-            except:
-                print("Connections Error Modbus TCP")
+        # the connect() method internally checks whether there's already a connection
+        if not self.invSun2000.connect():
+            print("Connection error Modbus TCP")
+            return None
 
         data = {}
 
@@ -56,19 +55,18 @@ class ModbusDataCollector2000Delux:
         data['/Ac/L3/Frequency'] = freq
 
         cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
-        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current']) * config.POWER_CORRECTION_FACTOR
-        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current']) * config.POWER_CORRECTION_FACTOR
-        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current']) * config.POWER_CORRECTION_FACTOR
+        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current']) * self.power_correction_factor
+        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current']) * self.power_correction_factor
+        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current']) * self.power_correction_factor
 
         return data
 
     def getStaticData(self):
-        if not self.invSun2000.isConnected():
-            try:
-                self.invSun2000.connect()
-            except:
-                print("Connections Error Modbus TCP")
-                return None
+        # the connect() method internally checks whether there's already a connection
+        if not self.invSun2000.connect():
+            print("Connection error Modbus TCP")
+            return None
+
         try:
             data={}
             data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
@@ -85,9 +83,9 @@ class ModbusDataCollector2000Delux:
 
 ## Just for testing ##
 if __name__ == "__main__":
-    if not hasattr(config, 'MODBUS_UNIT'):
-        config.MODBUS_UNIT = 0
-    inverter = inverter.Sun2000(host=config.HOST, port=config.PORT, modbus_unit=config.MODBUS_UNIT)
+    DBusGMainLoop(set_as_default=True)
+    settings = HuaweiSUN2000Settings()
+    inverter = inverter.Sun2000(host=settings.get("modbus_host"), port=settings.get("modbus_port"), modbus_unit=settings.get("modbus_unit"))
     inverter.connect()
     if inverter.isConnected():
 
