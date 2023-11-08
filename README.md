@@ -19,6 +19,7 @@ To further use the data, the mqtt broker from Venus OS can be used.
 - [ ] better logging
 - [x] find out why the most values are missing in the view
 - [x] repair modelname (custom name in config)
+- [x] possibility to change settings via gui
 - [ ] alarm, state
 - [ ] more values: temperature, efficiency
 - [ ] clean code
