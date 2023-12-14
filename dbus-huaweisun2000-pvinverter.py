@@ -63,7 +63,7 @@ class DbusSun2000Service:
 
         for _path, _settings in paths.items():
             self._dbusservice.add_path(
-                _path, _settings['initial'], gettextcallback=_settings['textformat'], writeable=True,
+                _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
@@ -152,6 +152,7 @@ def main():
         _hz = lambda p, v: f"{v:.4f}Hz"
         _n = lambda p, v: f"{v:i}"
 
+
         dbuspath = {
             '/Ac/Power': {'initial': 0, 'textformat': _w},
             '/Ac/Current': {'initial': 0, 'textformat': _a},
@@ -177,6 +178,7 @@ def main():
             '/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
             '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
             '/Dc/Power': {'initial': 0, 'textformat': _w},
+            '/Status': {'initial': ""},
         }
 
         pvac_output = DbusSun2000Service(
