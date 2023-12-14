@@ -77,6 +77,15 @@ Also useful:
 
 `tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
 
+### Stop the script
+
+`svc -d /service/dbus-huaweisun2000-pvinverter`
+
+### Start the script
+
+`svc -u /service/dbus-huaweisun2000-pvinverter`
+
+
 ### Restart the script
 
 If you want to restart the script, for example after changing it, just run the following command:
