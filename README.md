@@ -56,6 +56,9 @@ Cooming soon
 
    `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
 
+## GUI
+You can find the settings in the Remote Console under 'settings -> pv inverter -> Huawei...'
+
 ### Debugging
 
 You can check the status of the service with svstat:
