@@ -44,7 +44,7 @@ Cooming soon
    ```
 
 
-3. Edit the config.py file
+3. Edit the config.py file (not longer needed. Watch for Settings in the Remote Console.)
 
    `nano /data/dbus-huaweisun2000-pvinverter/config.py`
 
