@@ -28,51 +28,50 @@ from vedbus import VeDbusService
 
 class DbusSun2000Service:
     def __init__(self, servicename, settings, paths, data_connector, serialnumber='X',
-                 productname='Huawei Sun2000 PV-Inverter'):
-        self._dbusservice = VeDbusService(servicename)
+                 productname='Huawei Sun2000 Meter'):
+
         # self._paths = paths
         self._data_connector = data_connector
 
-        logging.debug("%s /DeviceInstance = %d" % (servicename, settings.get_vrm_instance()))
-
-        # productname="Huawei Sun2000" #tmp please del
+        # meter service
+        self._dbusservice_meter = VeDbusService(servicename + self.role)
 
         # Create the management objects, as specified in the ccgx dbus-api document
-        self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
-        self._dbusservice.add_path('/Mgmt/ProcessVersion',
-                                   'Unkown version, and running on Python ' + platform.python_version())
-        self._dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
+        self._dbusservice_meter.add_path('/Mgmt/ProcessName', __file__ + '_meter')
+        self._dbusservice_meter.add_path('/Mgmt/ProcessVersion',
+                                'Unkown version, and running on Python ' + platform.python_version())
+        self._dbusservice_meter.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
 
         # Create the mandatory objects
-        self._dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
-        self._dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
-        self._dbusservice.add_path('/ProductName', productname)
-        self._dbusservice.add_path('/CustomName', settings.get("custom_name"))
-        self._dbusservice.add_path('/FirmwareVersion', 1.0)
-        self._dbusservice.add_path('/HardwareVersion', 0)
-        self._dbusservice.add_path('/Connected', 1, writeable=True)
+        self._dbusservice_meter.add_path('/DeviceInstance', settings.get_vrm_instance())
+        self._dbusservice_meter.add_path('/ProductId', 0)  # Huawei does not have a product id
+        self._dbusservice_meter.add_path('/ProductName', productname)
+        self._dbusservice_meter.add_path('/CustomName', 'Huawei Meter')
+        self._dbusservice_meter.add_path('/FirmwareVersion', 1.0)
+        self._dbusservice_meter.add_path('/HardwareVersion', 0)
+        self._dbusservice_meter.add_path('/Connected', 1, writeable=True)
 
         # Create the mandatory objects
-        self._dbusservice.add_path('/Latency', None)
-        self._dbusservice.add_path('/Role', "pvinverter")
-        self._dbusservice.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
-        self._dbusservice.add_path('/Serial', serialnumber)
-        self._dbusservice.add_path('/ErrorCode', 0)
-        self._dbusservice.add_path('/UpdateIndex', 0)
-        self._dbusservice.add_path('/StatusCode', 7)
+        self._dbusservice_meter.add_path('/Latency', None)
+        self._dbusservice_meter.add_path('/Role', self.role)
+        self._dbusservice_meter.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
+        self._dbusservice_meter.add_path('/Serial', serialnumber)
+        self._dbusservice_meter.add_path('/ErrorCode', 0)
+        self._dbusservice_meter.add_path('/UpdateIndex', 0)
+        self._dbusservice_meter.add_path('/StatusCode', 7)
 
         for _path, _settings in paths.items():
-            self._dbusservice.add_path(
+            self._dbusservice_meter.add_path(
                 _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        with self._dbusservice as s:
+        with self._dbusservice_meter as s:
 
             try:
-                meter_data = self._data_connector.getData()
+                meter_data = self._data_connector.getMeterData()
 
                 for k, v in meter_data.items():
                     logging.info(f"set {k} to {v}")
@@ -86,7 +85,7 @@ class DbusSun2000Service:
 
             except Exception as e:
                 logging.critical('Error at %s', '_update', exc_info=e)
-
+                    
         return True
 
     def _handlechangedvalue(self, path, value):
@@ -97,6 +96,14 @@ def exit_mainloop(mainloop):
     mainloop.quit()
 
 def main():
+    usemeter = settings.get("use_meter")
+
+    if usemeter == 1:
+        role = 'grid'       
+    elif usemeter == 2:
+        role = 'acload'
+    else:
+        exit()
 
     # FIXME: This should be a proper private logger, instead of trying to configure the root logger,
     # which doesn't work unless force=True is specified and then leads to all sorts of libraries
@@ -152,41 +159,33 @@ def main():
         _hz = lambda p, v: f"{v:.4f}Hz"
         _n = lambda p, v: f"{v:i}"
 
-
         dbuspath = {
+            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
+            '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
             '/Ac/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            #
-            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
             '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L1/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            #
-            '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
-            '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
-            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
             '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L2/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
             '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            '/Dc/Power': {'initial': 0, 'textformat': _w},
-            '/Status': {'initial': ""},
+            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L1/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
         }
 
         pvac_output = DbusSun2000Service(
-            servicename='com.victronenergy.pvinverter.sun2000',
+            servicename='com.victronenergy.' + role,
             settings=settings,
             paths=dbuspath,
-            productname=staticdata['Model'],
-            serialnumber=staticdata['SN'],
+            productname='Meter ' + staticdata['MeterType'],
+            serialnumber=0,
             data_connector=modbus
         )
 

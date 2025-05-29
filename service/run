@@ -1,5 +1,7 @@
 #!/bin/sh
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-NEWPATH="$(dirname "$SCRIPT_DIR")/dbus-huaweisun2000-pvinverter.py"
+NEWPATH_INV="$(dirname "$SCRIPT_DIR")/dbus-huaweisun2000-pvinverter.py"
+NEWPATH_METER="$(dirname "$SCRIPT_DIR")/dbus-huaweisun2000-meter.py"
 exec 2>&1
-python -u $NEWPATH
+python -u $NEWPATH_INV
+python -u $NEWPATH_METER

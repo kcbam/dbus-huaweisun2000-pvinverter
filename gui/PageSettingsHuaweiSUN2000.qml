@@ -80,7 +80,7 @@ MbPage {
 				possibleValues: [
 						MbOption { description: qsTr("No"); value: 0 },
 						MbOption { description: qsTr("Yes, on Grid"); value: 1 },
-						MbOption { description: qsTr("Yes, on PV (to be done)"); value: 2 }
+						MbOption { description: qsTr("Yes, on AC Load (to be done)"); value: 2 }
 				]
 		}
 	}
