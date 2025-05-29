@@ -28,13 +28,13 @@ from vedbus import VeDbusService
 
 class DbusSun2000Service:
     def __init__(self, servicename, settings, paths, data_connector, serialnumber='X',
-                 productname='Huawei Sun2000 Meter'):
+                 productname='Huawei Sun2000 Meter', meter_role='grid'):
 
         # self._paths = paths
         self._data_connector = data_connector
 
         # meter service
-        self._dbusservice_meter = VeDbusService(servicename + self.role)
+        self._dbusservice_meter = VeDbusService(servicename)
 
         # Create the management objects, as specified in the ccgx dbus-api document
         self._dbusservice_meter.add_path('/Mgmt/ProcessName', __file__ + '_meter')
@@ -53,7 +53,7 @@ class DbusSun2000Service:
 
         # Create the mandatory objects
         self._dbusservice_meter.add_path('/Latency', None)
-        self._dbusservice_meter.add_path('/Role', self.role)
+        self._dbusservice_meter.add_path('/Role', meter_role)
         self._dbusservice_meter.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
         self._dbusservice_meter.add_path('/Serial', serialnumber)
         self._dbusservice_meter.add_path('/ErrorCode', 0)
@@ -96,15 +96,6 @@ def exit_mainloop(mainloop):
     mainloop.quit()
 
 def main():
-    usemeter = settings.get("use_meter")
-
-    if usemeter == 1:
-        role = 'grid'       
-    elif usemeter == 2:
-        role = 'acload'
-    else:
-        exit()
-
     # FIXME: This should be a proper private logger, instead of trying to configure the root logger,
     # which doesn't work unless force=True is specified and then leads to all sorts of libraries
     # logging lots of debug data
@@ -123,6 +114,14 @@ def main():
     logging.info(f"Settings: ModbusHost '{settings.get('modbus_host')}', ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
     logging.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}', UpdateTimeMS '{settings.get('update_time_ms')}'")
     logging.info(f"Settings: PowerCorrectionFactor '{settings.get('power_correction_factor')}'")
+
+    usemeter = settings.get("use_meter")
+    if usemeter == 1:
+        role = 'grid'       
+    elif usemeter == 2:
+        role = 'acload'
+    else:
+        exit()
 
     while "255" in settings.get("modbus_host"):
         # This catches the initial setting and allows the service to be installed without configuring it first
@@ -163,6 +162,7 @@ def main():
             '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
             '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
             '/Ac/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/PowerFactor': {'initial': 0, 'textformat': _n},
             '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
             '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
             '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
@@ -184,9 +184,10 @@ def main():
             servicename='com.victronenergy.' + role,
             settings=settings,
             paths=dbuspath,
-            productname='Meter ' + staticdata['MeterType'],
+            productname='DDSU666-H Meter',
             serialnumber=0,
-            data_connector=modbus
+            data_connector=modbus,
+            meter_role=role
         )
 
         logging.info('Connected to dbus, and switching over to GLib.MainLoop() (= event based)')
