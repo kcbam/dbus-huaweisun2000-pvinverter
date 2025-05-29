@@ -44,7 +44,7 @@ class ModbusDataCollector2000Delux:
         self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit)
         self.power_correction_factor = power_correction_factor
 
-    def getData(self):
+    def getInverterData(self):
         # the connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
             print("Connection error Modbus TCP")
@@ -96,6 +96,71 @@ class ModbusDataCollector2000Delux:
 
         return data
 
+    def getMeterData(self):
+        # the connect() method internally checks whether there's already a connection
+        if not self.invSun2000.connect():
+            print("Connection error Modbus TCP")
+            return None
+
+        """ com.victronenergy.grid
+        com.victronenergy.acload (when used as consumer to measure an acload)
+        com.victronenergy.genset (when used as producer to measure a genset)
+
+        /Ac/Energy/Forward     <- kWh  - bought energy (total of all phases)
+        /Ac/Energy/Reverse     <- kWh  - sold energy (total of all phases)
+        /Ac/Power              <- W    - total of all phases, real power
+        /Ac/PowerFactor        <-      - total power factor
+
+        /Ac/Current            <- A AC - Deprecated
+        /Ac/Voltage            <- V AC - Deprecated
+
+        /Ac/L1/Current         <- A AC
+        /Ac/L1/Energy/Forward  <- kWh  - bought
+        /Ac/L1/Energy/Reverse  <- kWh  - sold
+        /Ac/L1/Power           <- W, real power
+        /Ac/L1/PowerFactor     <- power factor
+        /Ac/L1/Voltage         <- V AC
+        /Ac/L2/*               <- same as L1
+        /Ac/L3/*               <- same as L1
+        /DeviceType
+        /ErrorCode
+
+        /IsGenericEnergyMeter  <- When an energy meter masquarades as a genset or acload, this is set to 1. """
+
+        data = {}
+
+        dbuspath = {
+            '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
+            '/Ac/PowerFactor': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.PowerFactor},       
+            '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
+            '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+            '/Ac/L1/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseActivePower},
+            '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
+            '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
+            '/Ac/L2/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseActivePower},
+            '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
+            '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},
+            '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseActivePower},
+        }
+
+        for k, v in dbuspath.items():
+            s = v.get("sun2000")
+            data[k] = self.invSun2000.read(s)
+
+        data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
+        data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+
+        data['/Ac/L1/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
+        data['/Ac/L1/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+
+        data['/Ac/L2/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
+        data['/Ac/L2/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+
+        data['/Ac/L3/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
+        data['/Ac/L3/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+
+        return data
+    
     def getStaticData(self):
         # the connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
