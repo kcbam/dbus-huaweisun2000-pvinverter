@@ -18,13 +18,13 @@ import time
 import os
 import config
 from dbus.mainloop.glib import DBusGMainLoop
+import dbus
 from connector_modbus import ModbusDataCollector2000Delux
 from settings import HuaweiSUN2000Settings
 
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
 from vedbus import VeDbusService
-
 
 class DbusRunServices:
     def __init__(self,  services, settings):
@@ -54,10 +54,20 @@ class DbusRunServices:
 
         return True
 
+class SystemBus(dbus.bus.BusConnection):
+	def __new__(cls):
+	    return dbus.bus.BusConnection.__new__(cls, dbus.bus.BusConnection.TYPE_SYSTEM)
+
+class SessionBus(dbus.bus.BusConnection):
+	def __new__(cls):
+	    return dbus.bus.BusConnection.__new__(cls, dbus.bus.BusConnection.TYPE_SESSION)
+
+def dbusconnection():
+    return SessionBus() if 'DBUS_SESSION_BUS_ADDRESS' in os.environ else SystemBus()
 
 def NewService(servicename, settings, paths, serialnumber, productname, role):
 
-    _dbusservice = VeDbusService(servicename)
+    _dbusservice = VeDbusService(servicename, bus=dbusconnection(),  register=False)
 
     # Create the management objects, as specified in the ccgx dbus-api document
     _dbusservice.add_path('/Mgmt/ProcessName', __file__ + '_' + role)
@@ -86,7 +96,9 @@ def NewService(servicename, settings, paths, serialnumber, productname, role):
     for _path, _settings in paths.items():
         _dbusservice.add_path(
             _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True)
-        
+
+    _dbusservice.register()
+
     return _dbusservice
 
 def exit_mainloop(mainloop):
@@ -210,7 +222,7 @@ def main():
             'data' : modbus.getInverterData
         }
 
-        usemeter = 0 # settings.get("use_meter")
+        usemeter = settings.get("use_meter")
         if usemeter == 1:
             DbusServices['meter'] = { 
                 'service:' : NewService(servicename='com.victronenergy.grid',
