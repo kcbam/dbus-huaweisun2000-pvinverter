@@ -33,11 +33,11 @@ class DbusRunServices:
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        with self._dbusservices as services:            
-            data_colector = services['data']  # get the data collector function
+        for service_list in self._dbusservices.values():
+            data_colector = service_list['data']  # get the data collector function
             data = data_colector()  # call the data collector function to get the latest data            
             
-            with services['service:'] as s:  # get the dbus service object
+            with service_list['service:'] as s:  # get the dbus service object
                 try:                    
                     for k, v in data.items():
                         logging.info(f"set {k} to {v}")
