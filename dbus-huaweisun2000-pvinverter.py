@@ -26,55 +26,20 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/d
 from vedbus import VeDbusService
 
 
-class DbusSun2000InverterService:
-    def __init__(self, servicename, settings, paths, data_connector, serialnumber='X',
-                 productname='Huawei Sun2000 PV-Inverter'):
-        self._dbusservice = VeDbusService(servicename)
-        # self._paths = paths
-        self._data_connector = data_connector
-
-        logging.debug("%s /DeviceInstance = %d" % (servicename, settings.get_vrm_instance()))
-
-        # productname="Huawei Sun2000" #tmp please del
-
-        # Create the management objects, as specified in the ccgx dbus-api document
-        self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
-        self._dbusservice.add_path('/Mgmt/ProcessVersion',
-                                   'Unkown version, and running on Python ' + platform.python_version())
-        self._dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
-
-        # Create the mandatory objects
-        self._dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
-        self._dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
-        self._dbusservice.add_path('/ProductName', productname)
-        self._dbusservice.add_path('/CustomName', settings.get("custom_name"))
-        self._dbusservice.add_path('/FirmwareVersion', 1.0)
-        self._dbusservice.add_path('/HardwareVersion', 0)
-        self._dbusservice.add_path('/Connected', 1, writeable=True)
-
-        # Create the mandatory objects
-        self._dbusservice.add_path('/Latency', None)
-        self._dbusservice.add_path('/Role', "pvinverter")
-        self._dbusservice.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
-        self._dbusservice.add_path('/Serial', serialnumber)
-        self._dbusservice.add_path('/ErrorCode', 0)
-        self._dbusservice.add_path('/UpdateIndex', 0)
-        self._dbusservice.add_path('/StatusCode', 7)
-
-        for _path, _settings in paths.items():
-            self._dbusservice.add_path(
-                _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True,
-                onchangecallback=self._handlechangedvalue)
+class DbusRunServices:
+    def __init__(self,  services, settings):
+        self._dbusservices = services
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        with self._dbusservice as s:
+        with self._dbusservices as s:
 
             try:
-                meter_data = self._data_connector.getData()
+                data_colector = s['data']  # get the data collector function
+                data = data_colector()  # call the data collector function to get the latest data
 
-                for k, v in meter_data.items():
+                for k, v in data.items():
                     logging.info(f"set {k} to {v}")
                     s[k] = v
 
@@ -89,75 +54,40 @@ class DbusSun2000InverterService:
 
         return True
 
-    def _handlechangedvalue(self, path, value):
-        logging.debug("someone else updated %s to %s" % (path, value))
-        return True  # accept the change
 
-class DbusSun2000MeterService:
-    def __init__(self, servicename, settings, paths, data_connector, serialnumber='X',
-                 productname='Huawei Sun2000 Meter', meter_role='grid'):
+def NewService(servicename, settings, paths, serialnumber='X', productname, role):
 
-        # self._paths = paths
-        self._data_connector = data_connector
+    _dbusservice = VeDbusService(servicename)
 
-        # meter service
-        self._dbusservice_meter = VeDbusService(servicename)
+    # Create the management objects, as specified in the ccgx dbus-api document
+    _dbusservice.add_path('/Mgmt/ProcessName', __file__ + '_' + role)
+    _dbusservice.add_path('/Mgmt/ProcessVersion',
+                            'Unkown version, and running on Python ' + platform.python_version())
+    _dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
 
-        # Create the management objects, as specified in the ccgx dbus-api document
-        self._dbusservice_meter.add_path('/Mgmt/ProcessName', __file__)
-        self._dbusservice_meter.add_path('/Mgmt/ProcessVersion',
-                                'Unkown version, and running on Python ' + platform.python_version())
-        self._dbusservice_meter.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
+    # Create the mandatory objects
+    _dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
+    _dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
+    _dbusservice.add_path('/ProductName', productname)
+    _dbusservice.add_path('/CustomName', 'Huawei Meter')
+    _dbusservice.add_path('/FirmwareVersion', 1.0)
+    _dbusservice.add_path('/HardwareVersion', 0)
+    _dbusservice.add_path('/Connected', 1, writeable=True)
 
-        # Create the mandatory objects
-        self._dbusservice_meter.add_path('/DeviceInstance', settings.get_vrm_instance())
-        self._dbusservice_meter.add_path('/ProductId', 0)  # Huawei does not have a product id
-        self._dbusservice_meter.add_path('/ProductName', productname)
-        self._dbusservice_meter.add_path('/CustomName', 'Huawei Meter')
-        self._dbusservice_meter.add_path('/FirmwareVersion', 1.0)
-        self._dbusservice_meter.add_path('/HardwareVersion', 0)
-        self._dbusservice_meter.add_path('/Connected', 1, writeable=True)
+    # Create the mandatory objects
+    _dbusservice.add_path('/Latency', None)
+    _dbusservice.add_path('/Role', role)
+    _dbusservice.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
+    _dbusservice.add_path('/Serial', serialnumber)
+    _dbusservice.add_path('/ErrorCode', 0)
+    _dbusservice.add_path('/UpdateIndex', 0)
+    _dbusservice.add_path('/StatusCode', 7)
 
-        # Create the mandatory objects
-        self._dbusservice_meter.add_path('/Latency', None)
-        self._dbusservice_meter.add_path('/Role', meter_role)
-        self._dbusservice_meter.add_path('/Position', settings.get("position"))  # 0 = AC Input, 1 = AC-Out 1, AC-Out 2
-        self._dbusservice_meter.add_path('/Serial', serialnumber)
-        self._dbusservice_meter.add_path('/ErrorCode', 0)
-        self._dbusservice_meter.add_path('/UpdateIndex', 0)
-        self._dbusservice_meter.add_path('/StatusCode', 7)
-
-        for _path, _settings in paths.items():
-            self._dbusservice_meter.add_path(
-                _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True,
-                onchangecallback=self._handlechangedvalue)
-
-        GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
-
-    def _update(self):
-        with self._dbusservice_meter as s:
-
-            try:
-                meter_data = self._data_connector.getMeterData()
-
-                for k, v in meter_data.items():
-                    logging.info(f"set {k} to {v}")
-                    s[k] = v
-
-                # increment UpdateIndex - to show that new data is available (and wrap)
-                s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
-
-                # update lastupdate vars
-                self._lastUpdate = time.time()
-
-            except Exception as e:
-                logging.critical('Error at %s', '_update', exc_info=e)
-                    
-        return True
-
-    def _handlechangedvalue(self, path, value):
-        logging.debug("someone else updated %s to %s" % (path, value))
-        return True  # accept the change
+    for _path, _settings in paths.items():
+        _dbusservice.add_path(
+            _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True)
+        
+    return _dbusservice
 
 def exit_mainloop(mainloop):
     mainloop.quit()
@@ -270,42 +200,49 @@ def main():
 
         DbusServices = {}
 
-        DbusServices['pvinverter'] = DbusSun2000InverterService(
-            servicename='com.victronenergy.pvinverter.sun2000',
-            settings=settings,
-            paths=dbuspath_inv,
-            productname=staticdata['Model'],
-            serialnumber=staticdata['SN'],
-            data_connector=modbus
-        )
+        DbusServices['pvinverter'] = { 
+            'service:' : NewService(servicename='com.victronenergy.pvinverter.sun2000',
+                                    settings=settings,
+                                    paths=dbuspath_inv,
+                                    productname=staticdata['Model'],
+                                    serialnumber=staticdata['SN'],
+                                    role='pvinverter'), 
+            'data' : modbus.getInverterData
+        }
 
         usemeter = settings.get("use_meter")
         if usemeter == 1:
-            DbusServices['meter'] = DbusSun2000MeterService(
-                servicename='com.victronenergy.',
-                settings=settings,
-                paths=dbuspath_meter,
-                productname='DDSU666-H Meter',
-                serialnumber='123456',
-                data_connector=modbus,
-                meter_role='grid'
-            )     
+            DbusServices['meter'] = { 
+                'service:' : NewService(servicename='com.victronenergy.grid',
+                                        settings=settings,
+                                        paths=dbuspath_inv,
+                                        productname='DDSU666-H Meter',
+                                        serialnumber='123456',
+                                        role='grid'),
+                'data' : modbus.getMeterData
+            } 
         elif usemeter == 2:
-            DbusServices['meter'] = DbusSun2000MeterService(
-                servicename='com.victronenergy.',
-                settings=settings,
-                paths=dbuspath_meter,
-                productname='DDSU666-H Meter',
-                serialnumber='123456',
-                data_connector=modbus,
-                meter_role='acload'
-            )
+            DbusServices['meter'] = { 
+                'service:' : NewService(servicename='com.victronenergy.acload',
+                                        settings=settings,
+                                        paths=dbuspath_inv,
+                                        productname='DDSU666-H Meter',
+                                        serialnumber='123456',
+                                        role='acload'),
+                'data' : modbus.getMeterData
+            } 
         else:
             logging.info('No meter service created, as use_meter is set to %s', usemeter)
+
+        run_services = DbusRunServices(
+            services=DbusServices, 
+            settings=settings
+        )
 
         logging.info('Connected to dbus, and switching over to GLib.MainLoop() (= event based)')
         mainloop = GLib.MainLoop()
         mainloop.run()
+    
     except Exception as e:
         logging.critical('Error at %s', 'main', exc_info=e)
 
