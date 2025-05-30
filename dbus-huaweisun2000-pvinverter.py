@@ -33,29 +33,29 @@ class DbusRunServices:
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        with self._dbusservices as s:
+        with self._dbusservices as services:            
+            data_colector = services['data']  # get the data collector function
+            data = data_colector()  # call the data collector function to get the latest data            
+            
+            with services['service:'] as s:  # get the dbus service object
+                try:                    
+                    for k, v in data.items():
+                        logging.info(f"set {k} to {v}")
+                        s[k] = v
 
-            try:
-                data_colector = s['data']  # get the data collector function
-                data = data_colector()  # call the data collector function to get the latest data
+                    # increment UpdateIndex - to show that new data is available (and wrap)
+                    s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
 
-                for k, v in data.items():
-                    logging.info(f"set {k} to {v}")
-                    s[k] = v
+                    # update lastupdate vars
+                    self._lastUpdate = time.time()
 
-                # increment UpdateIndex - to show that new data is available (and wrap)
-                s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
-
-                # update lastupdate vars
-                self._lastUpdate = time.time()
-
-            except Exception as e:
-                logging.critical('Error at %s', '_update', exc_info=e)
+                except Exception as e:
+                    logging.critical('Error at %s', '_update', exc_info=e)
 
         return True
 
 
-def NewService(servicename, settings, paths, serialnumber='X', productname, role):
+def NewService(servicename, settings, paths, serialnumber, productname, role):
 
     _dbusservice = VeDbusService(servicename)
 
@@ -210,12 +210,12 @@ def main():
             'data' : modbus.getInverterData
         }
 
-        usemeter = settings.get("use_meter")
+        usemeter = 0 # settings.get("use_meter")
         if usemeter == 1:
             DbusServices['meter'] = { 
                 'service:' : NewService(servicename='com.victronenergy.grid',
                                         settings=settings,
-                                        paths=dbuspath_inv,
+                                        paths=dbuspath_meter,
                                         productname='DDSU666-H Meter',
                                         serialnumber='123456',
                                         role='grid'),
@@ -225,7 +225,7 @@ def main():
             DbusServices['meter'] = { 
                 'service:' : NewService(servicename='com.victronenergy.acload',
                                         settings=settings,
-                                        paths=dbuspath_inv,
+                                        paths=dbuspath_meter,
                                         productname='DDSU666-H Meter',
                                         serialnumber='123456',
                                         role='acload'),
