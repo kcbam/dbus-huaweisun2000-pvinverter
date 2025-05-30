@@ -175,8 +175,6 @@ class ModbusDataCollector2000Delux:
                                                                                                                    '')
             data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
             data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
-
-            data['MeterType'] = self.invSun2000.read(registers.MeterEquipmentRegister.MeterType)
             return data
 
         except:
