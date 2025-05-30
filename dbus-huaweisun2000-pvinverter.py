@@ -208,7 +208,7 @@ def main():
             break
 
     try:
-        logging.info("Starting up");
+        logging.info("Starting up")
 
         # formatting
         _kwh = lambda p, v: (str(round(v, 2)) + ' kWh')
