@@ -27,19 +27,21 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/d
 from vedbus import VeDbusService
 
 class DbusRunServices:
-    def __init__(self,  services, settings):
-        self._dbusservices = services
+    def __init__(self,  services_data, settings):
+        self.DBusServiceData = services_data
+        for dbus_service in self.DBusServiceData.values():
+            dbus_service['service'].register()
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        for service in self._dbusservices:
-            data_colector = service['data']  # get the data collector function
-            data = data_colector()  # call the data collector function to get the latest data            
-            
-            with service['service:'] as s:  # get the dbus service object
+        for dbus_service in self.DBusServiceData.values():
+            data_colector = dbus_service['data']  # get the data collector function
+            data_values = data_colector()  # call the data collector function to get the latest data            
+
+            with dbus_service['service'] as s:  # get the dbus service object
                 try:                    
-                    for k, v in data.items():
+                    for k, v in data_values.items():
                         logging.info(f"set {k} to {v}")
                         s[k] = v
 
@@ -96,8 +98,6 @@ def NewService(servicename, settings, paths, serialnumber, productname = 'Huawei
     for _path, _settings in paths.items():
         _dbusservice.add_path(
             _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True)
-
-    _dbusservice.register()
 
     return _dbusservice
 
@@ -212,37 +212,33 @@ def main():
 
         DbusServices = {}
 
-        DbusServices['pvinverter'] = { 
-            'service:' : NewService(servicename='com.victronenergy.pvinverter.sun2000',
-                                    settings=settings,
-                                    paths=dbuspath_inv,
-                                    productname=staticdata['Model'],
-                                    serialnumber=staticdata['SN'],
-                                    role='pvinverter'), 
-            'data' : modbus.getInverterData
-        }
+        inverter_service = NewService(servicename='com.victronenergy.pvinverter.sun2000',
+                                      settings=settings,
+                                      paths=dbuspath_inv,
+                                      productname=staticdata['Model'],
+                                      serialnumber=staticdata['SN'],
+                                      role='pvinverter')
+        DbusServices['pvinverter'] = { 'service' : inverter_service, 'data' : modbus.getInverterData }
 
+        meter_service_grid = NewService(servicename='com.victronenergy.grid.ddsu666h',
+                                   settings=settings,
+                                   paths=dbuspath_meter,
+                                   productname='DDSU666-H Meter',
+                                   serialnumber='123456',
+                                   role='grid')
+        
+        meter_service_acload = NewService(servicename='com.victronenergy.acload.ddsu666h',
+                                        settings=settings,
+                                        paths=dbuspath_meter,
+                                        productname='DDSU666-H Meter',
+                                        serialnumber='123456',
+                                        role='acload')
+                
         usemeter = settings.get("use_meter")
         if usemeter == 1:
-            DbusServices['meter'] = { 
-                'service:' : NewService(servicename='com.victronenergy.grid.ddsu666h',
-                                        settings=settings,
-                                        paths=dbuspath_meter,
-                                        productname='DDSU666-H Meter',
-                                        serialnumber='123456',
-                                        role='grid'),
-                'data' : modbus.getMeterData
-            } 
+            DbusServices['meter'] = { 'service' : meter_service_grid, 'data' : modbus.getMeterData }
         elif usemeter == 2:
-            DbusServices['meter'] = { 
-                'service:' : NewService(servicename='com.victronenergy.acload.ddsu666h',
-                                        settings=settings,
-                                        paths=dbuspath_meter,
-                                        productname='DDSU666-H Meter',
-                                        serialnumber='123456',
-                                        role='acload'),
-                'data' : modbus.getMeterData
-            } 
+            DbusServices['meter'] = { 'service' : meter_service_acload, 'data' : modbus.getMeterData }
         else:
             logging.info('No meter service created, as use_meter is set to %s', usemeter)
 
