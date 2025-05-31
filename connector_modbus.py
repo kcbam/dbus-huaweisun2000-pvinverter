@@ -41,7 +41,7 @@ alert1Readable = {
 
 class ModbusDataCollector2000Delux:
     def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995):
-        self.invSun2000 = inverter.Sun2000(host=host, port=port, unit=modbus_unit)
+        self.invSun2000 = inverter.Sun2000(host=host, port=port, unit=modbus_unit, timeout=20)
         self.power_correction_factor = power_correction_factor
 
     def getInverterData(self):
@@ -134,19 +134,24 @@ class ModbusDataCollector2000Delux:
             '/Ac/PowerFactor': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.PowerFactor},       
             '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
             '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
-            '/Ac/L1/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseActivePower},
             '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
             '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
-            '/Ac/L2/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseActivePower},
             '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
             '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},
-            '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseActivePower},
         }
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
+        cosphi = float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor)))
+        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
+            data['/Ac/L1/Current']) * self.power_correction_factor
+        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
+            data['/Ac/L2/Current']) * self.power_correction_factor
+        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
+            data['/Ac/L3/Current']) * self.power_correction_factor
+        
         data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
         data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
 
