@@ -130,8 +130,7 @@ class ModbusDataCollector2000Delux:
         data = {}
 
         dbuspath = {
-            '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
-            '/Ac/PowerFactor': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.PowerFactor},       
+            '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
             '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
             '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
             '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},

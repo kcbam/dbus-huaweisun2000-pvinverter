@@ -33,9 +33,10 @@ class DbusRunServices:
     def __init__(self,  services_data, settings):
         self.DBusServiceData = services_data
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
+        self.iterator=0
 
     def _update(self):
-        for dbus_service in self.DBusServiceData.values():
+        with self.DBusServiceData[self.iterator] as dbus_service:
             data_colector = dbus_service['data']  # get the data collector function
             data_values = data_colector()  # call the data collector function to get the latest data            
 
@@ -59,6 +60,9 @@ class DbusRunServices:
                     except Exception as e:
                         logging.critical('Error at %s', '_update', exc_info=e)
 
+            self.iterator+=1
+            if self.iterator == len(self.DBusServiceData):
+                 self.iterator=0                 
         return True
 
 class SystemBus(dbus.bus.BusConnection):
@@ -185,16 +189,16 @@ def main():
             #
             '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
             '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
-            #'/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            #'/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-            #'/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-            #'/Ac/L2/Frequency': {'initial': None, 'textformat': _hz},
-            #'/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            #'/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-            #'/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-            #'/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-            #'/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
-            #'/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
+            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L2/Frequency': {'initial': None, 'textformat': _hz},
+            '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
+            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
+            '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
             '/Dc/Power': {'initial': 0, 'textformat': _w},
             '/Status': {'initial': ""},
         }
@@ -203,22 +207,21 @@ def main():
             '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
             '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
             '/Ac/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/PowerFactor': {'initial': 0, 'textformat': _n},
             '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            #'/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-            #'/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
             '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-            #'/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-            #'/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
             '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-            #'/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            #'/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
             '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            #'/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            #'/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
             '/Ac/L1/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
-            #'/Ac/L2/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
-            #'/Ac/L3/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
         }
 
         DbusServices = {}
