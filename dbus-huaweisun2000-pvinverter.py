@@ -28,8 +28,6 @@ from vedbus import VeDbusService
 
 class DbusRunServices:
     def __init__(self,  services_data, settings):
-        self.trials = 0
-
         self.DBusServiceData = services_data
         for dbus_service in self.DBusServiceData.values():
             dbus_service['service'].register()
@@ -42,9 +40,8 @@ class DbusRunServices:
             data_values = data_colector()  # call the data collector function to get the latest data            
 
             if data_values is None:
-                self.trials += 1
-                if self.trials > 5:
-                    exit_mainloop()
+                logging.critical('TCP Connection is probably lost. No data received')
+                return False
             else:
                 self.trials = 0
                 with dbus_service['service'] as s:  # get the dbus service object
