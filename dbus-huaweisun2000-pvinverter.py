@@ -36,34 +36,33 @@ class DbusRunServices:
         self.iterator='pvinverter'
 
     def _update(self):
-        with self.DBusServiceData[self.iterator] as dbus_service:
-            data_colector = dbus_service['data']  # get the data collector function
-            data_values = data_colector()  # call the data collector function to get the latest data            
+        data_colector = self.DBusServiceData[self.iterator]['data']  # get the data collector function
+        data_values = data_colector()  # call the data collector function to get the latest data            
 
-            if data_values is None:
-                logging.critical('TCP Connection is probably lost. No data received')
-                return False
-            else:
-                self.trials = 0
-                with dbus_service['service'] as s:  # get the dbus service object
-                    try:                    
-                        for k, v in data_values.items():
-                            logging.info(f"set {k} to {v}")
-                            s[k] = v
+        if data_values is None:
+            logging.critical('TCP Connection is probably lost. No data received')
+            return False
+        else:
+            self.trials = 0
+            with self.DBusServiceData[self.iterator]['service'] as s:  # get the dbus service object
+                try:                    
+                    for k, v in data_values.items():
+                        logging.info(f"set {k} to {v}")
+                        s[k] = v
 
-                        # increment UpdateIndex - to show that new data is available (and wrap)
-                        s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
+                    # increment UpdateIndex - to show that new data is available (and wrap)
+                    s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
 
-                        # update lastupdate vars
-                        self._lastUpdate = time.time()
+                    # update lastupdate vars
+                    self._lastUpdate = time.time()
 
-                    except Exception as e:
-                        logging.critical('Error at %s', '_update', exc_info=e)
+                except Exception as e:
+                    logging.critical('Error at %s', '_update', exc_info=e)
 
-            if self.iterator=='pvinverter':
-                self.iterator='meter'
-            else:
-                self.iterator='pvinverter'
+        if self.iterator=='pvinverter':
+            self.iterator='meter'
+        else:
+            self.iterator='pvinverter'
 
         return True
 
