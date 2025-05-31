@@ -26,12 +26,12 @@ from settings import HuaweiSUN2000Settings
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
 from vedbus import VeDbusService
 
+def handlechangedvalue():
+    return True  # accept the change
+
 class DbusRunServices:
     def __init__(self,  services_data, settings):
         self.DBusServiceData = services_data
-        for dbus_service in self.DBusServiceData.values():
-            dbus_service['service'].register()
-
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
@@ -102,7 +102,8 @@ def NewService(servicename, settings, paths, serialnumber, productname = 'Huawei
 
     for _path, _settings in paths.items():
         _dbusservice.add_path(
-            _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True)
+            _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True, 
+            onchangecallback=handlechangedvalue)
 
     return _dbusservice
 
@@ -246,6 +247,9 @@ def main():
             DbusServices['meter'] = { 'service' : meter_service_acload, 'data' : modbus.getMeterData }
         else:
             logging.info('No meter service created, as use_meter is set to %s', usemeter)
+
+        for dbus_service in DbusServices.values():
+            dbus_service['service'].register()
 
         run_services = DbusRunServices(
             services_data=DbusServices, 
