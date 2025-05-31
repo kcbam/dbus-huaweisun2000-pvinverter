@@ -33,11 +33,11 @@ class DbusRunServices:
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
     def _update(self):
-        for service_list in self._dbusservices.values():
-            data_colector = service_list['data']  # get the data collector function
+        for service in self._dbusservices:
+            data_colector = service['data']  # get the data collector function
             data = data_colector()  # call the data collector function to get the latest data            
             
-            with service_list['service:'] as s:  # get the dbus service object
+            with service['service:'] as s:  # get the dbus service object
                 try:                    
                     for k, v in data.items():
                         logging.info(f"set {k} to {v}")
@@ -65,7 +65,7 @@ class SessionBus(dbus.bus.BusConnection):
 def dbusconnection():
     return SessionBus() if 'DBUS_SESSION_BUS_ADDRESS' in os.environ else SystemBus()
 
-def NewService(servicename, settings, paths, serialnumber, productname, role):
+def NewService(servicename, settings, paths, serialnumber, productname = 'Huawei Inverter', role = 'pvinverter'):
 
     _dbusservice = VeDbusService(servicename, bus=dbusconnection(),  register=False)
 
@@ -79,7 +79,7 @@ def NewService(servicename, settings, paths, serialnumber, productname, role):
     _dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
     _dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
     _dbusservice.add_path('/ProductName', productname)
-    _dbusservice.add_path('/CustomName', 'Huawei Meter')
+    _dbusservice.add_path('/CustomName', productname)
     _dbusservice.add_path('/FirmwareVersion', 1.0)
     _dbusservice.add_path('/HardwareVersion', 0)
     _dbusservice.add_path('/Connected', 1, writeable=True)
@@ -225,7 +225,7 @@ def main():
         usemeter = settings.get("use_meter")
         if usemeter == 1:
             DbusServices['meter'] = { 
-                'service:' : NewService(servicename='com.victronenergy.grid',
+                'service:' : NewService(servicename='com.victronenergy.grid.ddsu666h',
                                         settings=settings,
                                         paths=dbuspath_meter,
                                         productname='DDSU666-H Meter',
@@ -235,7 +235,7 @@ def main():
             } 
         elif usemeter == 2:
             DbusServices['meter'] = { 
-                'service:' : NewService(servicename='com.victronenergy.acload',
+                'service:' : NewService(servicename='com.victronenergy.acload.ddsu666h',
                                         settings=settings,
                                         paths=dbuspath_meter,
                                         productname='DDSU666-H Meter',
