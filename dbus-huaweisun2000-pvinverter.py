@@ -28,6 +28,8 @@ from vedbus import VeDbusService
 
 class DbusRunServices:
     def __init__(self,  services_data, settings):
+        self.trials = 0
+
         self.DBusServiceData = services_data
         for dbus_service in self.DBusServiceData.values():
             dbus_service['service'].register()
@@ -39,20 +41,26 @@ class DbusRunServices:
             data_colector = dbus_service['data']  # get the data collector function
             data_values = data_colector()  # call the data collector function to get the latest data            
 
-            with dbus_service['service'] as s:  # get the dbus service object
-                try:                    
-                    for k, v in data_values.items():
-                        logging.info(f"set {k} to {v}")
-                        s[k] = v
+            if data_values is None:
+                self.trials += 1
+                if self.trials > 5:
+                    exit_mainloop()
+            else:
+                self.trials = 0
+                with dbus_service['service'] as s:  # get the dbus service object
+                    try:                    
+                        for k, v in data_values.items():
+                            logging.info(f"set {k} to {v}")
+                            s[k] = v
 
-                    # increment UpdateIndex - to show that new data is available (and wrap)
-                    s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
+                        # increment UpdateIndex - to show that new data is available (and wrap)
+                        s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
 
-                    # update lastupdate vars
-                    self._lastUpdate = time.time()
+                        # update lastupdate vars
+                        self._lastUpdate = time.time()
 
-                except Exception as e:
-                    logging.critical('Error at %s', '_update', exc_info=e)
+                    except Exception as e:
+                        logging.critical('Error at %s', '_update', exc_info=e)
 
         return True
 
@@ -243,7 +251,7 @@ def main():
             logging.info('No meter service created, as use_meter is set to %s', usemeter)
 
         run_services = DbusRunServices(
-            services=DbusServices, 
+            services_data=DbusServices, 
             settings=settings
         )
 
