@@ -30,7 +30,9 @@ class Sun2000:
             else:
                 logger.error('Connection to inverter failed')
                 return False
-
+        else:
+            return True
+        
     def disconnect(self):
         """Close the underlying tcp socket"""
         # Some Sun2000 models with the SDongle WLAN-FE require the TCP connection to be closed

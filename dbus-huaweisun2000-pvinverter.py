@@ -83,7 +83,12 @@ def NewService(servicename, settings, paths, serialnumber, productname = 'Huawei
     _dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
 
     # Create the mandatory objects
-    _dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
+    if role=='pvinverter':
+        instance=settings.get_vrm_instance()
+    else:
+        instance=settings.get_vrm_instance() + 1
+
+    _dbusservice.add_path('/DeviceInstance', instance)
     _dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
     _dbusservice.add_path('/ProductName', productname)
     _dbusservice.add_path('/CustomName', productname)
