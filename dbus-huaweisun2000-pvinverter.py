@@ -34,6 +34,7 @@ class DbusRunServices:
         self.DBusServiceData = services_data
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
         self.iterator='pvinverter'
+        self.trials = 0
 
     def _update(self):
         data_colector = self.DBusServiceData[self.iterator]['data']  # get the data collector function
@@ -41,6 +42,9 @@ class DbusRunServices:
 
         if data_values is None:
             logging.critical('TCP Connection is probably lost. No data received')
+            self.trials +=1
+            if self.trials >= 5:
+                sys.exit(0) # Exit to force resstart service... another hack... :P
             return False
         else:
             self.trials = 0
