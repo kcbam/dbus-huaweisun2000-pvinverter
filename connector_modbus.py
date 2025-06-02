@@ -133,23 +133,17 @@ class ModbusDataCollector2000Delux:
             '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
             '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
             '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
-            #'/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
-            #'/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
-            #'/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
-            #'/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},
         }
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
-        cosphi = float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor)))
-        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
-            data['/Ac/L1/Current']) * self.power_correction_factor
-        #data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
-        #    data['/Ac/L2/Current']) * self.power_correction_factor
-        #data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
-        #    data['/Ac/L3/Current']) * self.power_correction_factor
+        cosphi = abs(float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor))))
+        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current']) * self.power_correction_factor
+        
+        data['/Ac/L2/Power'] = 0
+        data['/Ac/L3/Power'] = 0
         
         data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
         data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
@@ -157,11 +151,11 @@ class ModbusDataCollector2000Delux:
         data['/Ac/L1/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
         data['/Ac/L1/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
 
-        #data['/Ac/L2/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
-        #data['/Ac/L2/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+        data['/Ac/L2/Energy/Forward'] = 0
+        data['/Ac/L2/Energy/Reverse'] = 0
 
-        #data['/Ac/L3/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
-        #data['/Ac/L3/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+        data['/Ac/L3/Energy/Forward'] = 0
+        data['/Ac/L3/Energy/Reverse'] = 0
 
         return data
     
