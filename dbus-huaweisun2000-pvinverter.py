@@ -37,8 +37,12 @@ class DbusRunServices:
 
     def _update(self):
         for dbus_service in self.DBusServiceData.values():
-            data_colector = dbus_service['data']  # get the data collector function
-            data_values = data_colector()  # call the data collector function to get the latest data            
+            try:
+                data_colector = dbus_service['data']  # get the data collector function
+                data_values = data_colector()  # call the data collector function to get the latest data            
+            except Exception as e:
+                logging.critical('data colector timed out...', '_update', exc_info=e)
+                sys.exit(0) # Exit to force resstart service... another hack... :P
 
             if data_values is None:
                 logging.critical('TCP Connection is probably lost. No data received')
