@@ -33,39 +33,34 @@ class DbusRunServices:
     def __init__(self,  services_data, settings):
         self.DBusServiceData = services_data
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
-        self.iterator='pvinverter'
         self.trials = 0
 
     def _update(self):
-        data_colector = self.DBusServiceData[self.iterator]['data']  # get the data collector function
-        data_values = data_colector()  # call the data collector function to get the latest data            
+        for dbus_service in self.DBusServiceData.values():
+            data_colector = dbus_service['data']  # get the data collector function
+            data_values = data_colector()  # call the data collector function to get the latest data            
 
-        if data_values is None:
-            logging.critical('TCP Connection is probably lost. No data received')
-            self.trials +=1
-            if self.trials >= 5:
-                sys.exit(0) # Exit to force resstart service... another hack... :P
-        else:
-            self.trials = 0
-            with self.DBusServiceData[self.iterator]['service'] as s:  # get the dbus service object
-                try:                    
-                    for k, v in data_values.items():
-                        logging.info(f"set {k} to {v}")
-                        s[k] = v
+            if data_values is None:
+                logging.critical('TCP Connection is probably lost. No data received')
+                self.trials +=1
+                if self.trials >= 5:
+                    sys.exit(0) # Exit to force resstart service... another hack... :P
+            else:
+                self.trials = 0
+                with dbus_service['service'] as s:  # get the dbus service object
+                    try:                    
+                        for k, v in data_values.items():
+                            logging.info(f"set {k} to {v}")
+                            s[k] = v
 
-                    # increment UpdateIndex - to show that new data is available (and wrap)
-                    s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
+                        # increment UpdateIndex - to show that new data is available (and wrap)
+                        s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
 
-                    # update lastupdate vars
-                    self._lastUpdate = time.time()
+                        # update lastupdate vars
+                        self._lastUpdate = time.time()
 
-                except Exception as e:
-                    logging.critical('Error at %s', '_update', exc_info=e)
-
-        if self.iterator=='pvinverter':
-            self.iterator='meter'
-        else:
-            self.iterator='pvinverter'
+                    except Exception as e:
+                        logging.critical('Error at %s', '_update', exc_info=e)
 
         return True
 
