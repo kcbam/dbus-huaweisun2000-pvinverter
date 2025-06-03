@@ -83,5 +83,14 @@ MbPage {
 						MbOption { description: qsTr("Yes, on AC Load (to be done)"); value: 2 }
 				]
 		}
+
+		MbItemOptions {
+				description: qsTr("System Type")
+				bind: Utils.path(settings, "/SystemType")
+				possibleValues: [
+						MbOption { description: qsTr("Single-phase"); value: 0 },
+						MbOption { description: qsTr("Three-phase"); value: 1 }
+				]
+		}		
 	}
 }

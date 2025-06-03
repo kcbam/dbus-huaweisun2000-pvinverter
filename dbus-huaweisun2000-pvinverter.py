@@ -45,7 +45,6 @@ class DbusRunServices:
             self.trials +=1
             if self.trials >= 5:
                 sys.exit(0) # Exit to force resstart service... another hack... :P
-            return False
         else:
             self.trials = 0
             with self.DBusServiceData[self.iterator]['service'] as s:  # get the dbus service object
@@ -180,43 +179,79 @@ def main():
         _hz = lambda p, v: f"{v:.4f}Hz"
         _n = lambda p, v: f"{v:i}"
 
-        dbuspath_inv = {
-            '/Ac/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            #
-            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L1/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            #
-            '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
-            '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
-            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L2/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
-            '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
-            '/Dc/Power': {'initial': 0, 'textformat': _w},
-            '/Status': {'initial': ""},
-        }
+        if settings.get("system_type") == 1:
+            dbuspath_inv = {
+                '/Ac/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #
+                '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L1/Frequency': {'initial': None, 'textformat': _hz},
+                '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #
+                '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
+                '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
+                '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L2/Frequency': {'initial': None, 'textformat': _hz},
+                '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L3/Frequency': {'initial': None, 'textformat': _hz},
+                '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                '/Dc/Power': {'initial': 0, 'textformat': _w},
+                '/Status': {'initial': ""},
+            }
 
-        dbuspath_meter = {
-            '/DeviceType': {'initial': ""},
-            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
-            '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
-            '/Ac/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-        }
+            dbuspath_meter = {
+                '/DeviceType': {'initial': ""},
+                '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
+                '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
+                '/Ac/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L3/Power': {'initial': 0, 'textformat': _w},                
+            }
+        else:
+            dbuspath_inv = {
+                '/Ac/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #
+                '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L1/Frequency': {'initial': None, 'textformat': _hz},
+                '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #
+                '/Ac/MaxPower': {'initial': 20000, 'textformat': _w},
+                '/Ac/StatusCode': {'initial': 0, 'textformat': _n},
+                '/Dc/Power': {'initial': 0, 'textformat': _w},
+                '/Status': {'initial': ""},
+            }
+
+            dbuspath_meter = {
+                '/DeviceType': {'initial': ""},
+                '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
+                '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
+                '/Ac/Power': {'initial': 0, 'textformat': _w},
+                '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+                '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+            }
+
 
         DbusServices = {}
 

@@ -52,17 +52,29 @@ class ModbusDataCollector2000Delux:
 
         data = {}
 
-        dbuspath = {
-            '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
-            '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-            '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
-            '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
-            '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
-            '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
-            '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
-            '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
-            '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
-        }
+        if settings.get("system_type") == 1:
+            #three phase inverter
+            dbuspath = {
+                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+            }
+        else:
+            # single phase inverter
+            dbuspath = {
+                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+            }
+
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
@@ -76,23 +88,30 @@ class ModbusDataCollector2000Delux:
 
         energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
         data['/Ac/Energy/Forward'] = energy_forward
-        # There is no Modbus register for the phases
-        data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
+        
+        cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
+        if cosphi < 0.8:
+            cosphi = self.power_correction_factor
 
         freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
-        data['/Ac/L1/Frequency'] = freq
-        data['/Ac/L2/Frequency'] = freq
-        data['/Ac/L3/Frequency'] = freq
 
-        cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
+        # There is no Modbus register for the phases
+        data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
+        data['/Ac/L1/Frequency'] = freq        
         data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
-            data['/Ac/L1/Current']) * self.power_correction_factor
-        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
-            data['/Ac/L2/Current']) * self.power_correction_factor
-        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
-            data['/Ac/L3/Current']) * self.power_correction_factor
+            data['/Ac/L1/Current'])
+
+        if settings.get("system_type") == 1:
+            #three phase inverter
+            data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
+            data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)        
+            
+            data['/Ac/L2/Frequency'] = freq
+            data['/Ac/L3/Frequency'] = freq
+            data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
+                data['/Ac/L2/Current'])
+            data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
+                data['/Ac/L3/Current'])
 
         return data
 
@@ -129,16 +148,26 @@ class ModbusDataCollector2000Delux:
 
         data = {}
 
-        dbuspath = {
-            '/DeviceType' : {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType}, 
-            '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
-            '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
-            '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
-            #'/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
-            #'/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},    
-            #'/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
-            #'/Ac/L4/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},                    
-        }
+        if (settings.get("system_type") == 1):
+            # three phase meter
+            dbuspath = {
+                '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
+                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},                    
+            }
+        else:
+            # single phase meter            
+            dbuspath = {
+                '/DeviceType' : {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType}, 
+                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+            }
 
         data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
         data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
@@ -153,9 +182,10 @@ class ModbusDataCollector2000Delux:
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
-        #data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
-
-        #data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
+        if settings.get("system_type") == 1:
+            # three phase meter
+            data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+            data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
         return data
     
