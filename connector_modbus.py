@@ -40,9 +40,10 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995):
+    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type = 0):
         self.invSun2000 = inverter.Sun2000(host=host, port=port, unit=modbus_unit, timeout=20)
         self.power_correction_factor = power_correction_factor
+        self.system_type = system_type
 
     def getInverterData(self):
         # the connect() method internally checks whether there's already a connection
@@ -52,7 +53,7 @@ class ModbusDataCollector2000Delux:
 
         data = {}
 
-        if settings.get("system_type") == 1:
+        if self.system_type == 1:
             #three phase inverter
             dbuspath = {
                 '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
@@ -101,7 +102,7 @@ class ModbusDataCollector2000Delux:
         data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
             data['/Ac/L1/Current'])
 
-        if settings.get("system_type") == 1:
+        if self.system_type == 1:
             #three phase inverter
             data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
             data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)        
@@ -148,7 +149,7 @@ class ModbusDataCollector2000Delux:
 
         data = {}
 
-        if (settings.get("system_type") == 1):
+        if self.system_type == 1:
             # three phase meter
             dbuspath = {
                 '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
@@ -182,7 +183,7 @@ class ModbusDataCollector2000Delux:
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
-        if settings.get("system_type") == 1:
+        if self.system_type == 1:
             # three phase meter
             data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
             data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])

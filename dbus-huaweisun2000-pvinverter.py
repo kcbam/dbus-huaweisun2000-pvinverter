@@ -149,7 +149,8 @@ def main():
     modbus = ModbusDataCollector2000Delux(host = settings.get("modbus_host"),
                                           port=settings.get("modbus_port"),
                                           modbus_unit=settings.get("modbus_unit"),
-                                          power_correction_factor=settings.get("power_correction_factor"))
+                                          power_correction_factor=settings.get("power_correction_factor"),
+                                          system_type=settings.get("system_type"))
 
     while True:
         staticdata = modbus.getStaticData()
