@@ -14,14 +14,38 @@ additional hardware needs to be purchased and the inverter does not need to be c
 
 To further use the data, the mqtt broker from Venus OS can be used.
 
-## Venus OS v3.67 and GUI-v2 Support
+## Venus OS v3.67 and GUI Support
 
-This driver now supports **both GUI-v1 (Classic UI) and GUI-v2 (New UI)**. Venus OS v3.50 introduced the new GUI-v2, and v3.67 fully supports it. The installation script automatically detects which GUI version(s) are installed on your system and configures the appropriate interface.
+This driver supports **GUI-v1 (Classic UI)** which is used by Venus OS v3.67. The installation script automatically detects which GUI version is installed on your system and configures the appropriate interface.
 
-- **GUI-v1 (Classic UI)**: Supported for backward compatibility with older Venus OS versions
-- **GUI-v2 (New UI)**: Fully supported for Venus OS v3.50+ including v3.67
+### GUI Versions Explained
 
-The installer will configure whichever GUI version is available on your system, or both if you have both installed.
+Venus OS has two GUI systems:
+
+**GUI-v1 (Classic UI)** - QML-based interface
+- Used for on-screen display (HDMI/touch screens)
+- Fully customizable with QML files
+- ✅ **Fully supported by this driver**
+- Location: `/opt/victronenergy/gui/qml/`
+
+**GUI-v2 (New UI)** - Modern interface with two variants:
+1. **Native QML** (Cerbo GX, GX Touch devices):
+   - Uses Qt6 and modern QML components
+   - Customizable with QML files
+   - Location: `/opt/victronenergy/gui-v2/`
+   - ✅ **Supported by this driver** (for devices that have it)
+
+2. **WebAssembly** (Browser Remote Console):
+   - Compiled binary for web browsers
+   - Cannot be customized (compiled application)
+   - ❌ **Cannot add custom pages** (use dbus settings instead)
+
+**For Raspberry Pi 4 (Venus OS v3.67):**
+- On-screen display uses **GUI-v1** (Classic UI) ✅
+- Remote Console uses **GUI-v2 WebAssembly** (browser only)
+- Settings configured through GUI-v1 work across both interfaces
+
+The installer will configure whichever GUI version is available on your system.
 
 ## Todo
 
@@ -65,14 +89,15 @@ Cooming soon
 
    `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
 
-## GUI Settings
+## GUI Interface
 
-You can find the settings in the Remote Console:
+### Settings Page
 
-- **GUI-v1 (Classic UI)**: Settings → PV Inverters → Huawei SUN2000
-- **GUI-v2 (New UI)**: Settings → PV Inverters → Huawei SUN2000
+You can configure the driver in the Remote Console:
 
-The settings page allows you to configure:
+- **Path**: Settings → PV Inverters → Huawei SUN2000
+
+Available settings:
 - Modbus Host IP address
 - Modbus Port (default: 502)
 - Modbus Unit ID
@@ -80,6 +105,39 @@ The settings page allows you to configure:
 - Position (AC Input 1/2 or AC Output)
 - Update interval in milliseconds
 - Power correction factor
+
+### Inverter Detail Page (Optional)
+
+The repository includes an optional detailed inverter status page (`PageHuaweiSUN2000Details.qml`) that shows:
+- Current status and power output
+- Total energy production
+- Per-phase data (L1, L2, L3) - voltage, current, power, frequency, energy
+- DC power
+- Device information (model, serial, firmware)
+
+**To add this page to your main menu:**
+
+1. Copy the detail page to the GUI directory:
+   ```bash
+   cp /data/dbus-huaweisun2000-pvinverter/gui/PageHuaweiSUN2000Details.qml /opt/victronenergy/gui/qml/
+   ```
+
+2. Edit `/opt/victronenergy/gui/qml/PageMain.qml` and add the menu entry. Find the line with `model: VisibleItemModel {` (around line 20) and add:
+   ```qml
+   MbSubMenu {
+       description: qsTr("Huawei Inverter")
+       subpage: Component { PageHuaweiSUN2000Details {} }
+       show: pvinverterService.valid
+       VBusItem { id: pvinverterService; bind: "com.victronenergy.pvinverter.sun2000/ProductName" }
+   }
+   ```
+
+3. Restart the GUI:
+   ```bash
+   svc -t /service/gui
+   ```
+
+The "Huawei Inverter" menu item will now appear on the main menu when the inverter is connected.
 
 ### Debugging
 
