@@ -1,0 +1,8 @@
+			// dbus-huaweisun2000 start
+			ListNavigationItem {
+				text: qsTr("Huawei SUN2000")
+				onClicked: {
+					Global.pageManager.pushPage("/pages/settings/PageSettingsHuaweiSUN2000.qml")
+				}
+			}
+			// dbus-huaweisun2000 end

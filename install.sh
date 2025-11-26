@@ -30,18 +30,41 @@ fi
 
 grep -qxF "$SCRIPT_DIR/install.sh" $filename || echo "$SCRIPT_DIR/install.sh" >> $filename
 
-# The "PV inverters" page in Settings is somewhat specific for Fronius. Let's change that.
-invertersSettingsFile="/opt/victronenergy/gui/qml/PageSettingsFronius.qml"
+# Install GUI-v1 (Classic UI) files if they exist
+guiv1SettingsFile="/opt/victronenergy/gui/qml/PageSettingsFronius.qml"
 
-if (( $(grep -c "PageSettingsHuaweiSUN2000" $invertersSettingsFile) > 0)); then
-    echo "INFO: $invertersSettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+if [ -f "$guiv1SettingsFile" ]; then
+    echo "INFO: Found GUI-v1, installing Classic UI support"
+    if (( $(grep -c "PageSettingsHuaweiSUN2000" $guiv1SettingsFile) > 0)); then
+        echo "INFO: $guiv1SettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+    else
+        echo "INFO: Adding menu entry to $guiv1SettingsFile"
+        sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $guiv1SettingsFile
+    fi
+    cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
 else
-    echo "INFO: Adding menu entry to $invertersSettingsFile"
-    sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
+    echo "INFO: GUI-v1 not found at $guiv1SettingsFile, skipping Classic UI installation"
 fi
 
-cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
+# Install GUI-v2 (New UI) files if they exist
+guiv2SettingsFile="/opt/victronenergy/gui-v2/pages/settings/PageSettings.qml"
+
+if [ -f "$guiv2SettingsFile" ]; then
+    echo "INFO: Found GUI-v2, installing New UI support"
+    if (( $(grep -c "PageSettingsHuaweiSUN2000" $guiv2SettingsFile) > 0)); then
+        echo "INFO: $guiv2SettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+    else
+        echo "INFO: Adding menu entry to $guiv2SettingsFile"
+        # Insert before the closing brace of the pv inverters section
+        sed -i "/ListNavigationItem.*PV inverters/a\\$(cat $SCRIPT_DIR/gui-v2/menu_item.txt)" $guiv2SettingsFile
+    fi
+    cp -av $SCRIPT_DIR/gui-v2/*.qml /opt/victronenergy/gui-v2/pages/settings/
+else
+    echo "INFO: GUI-v2 not found at $guiv2SettingsFile, skipping New UI installation"
+fi
 
 # As we've modified the GUI, we need to restart it
-svc -t /service/gui
+if [ -f "$guiv1SettingsFile" ] || [ -f "$guiv2SettingsFile" ]; then
+    svc -t /service/gui
+fi
 

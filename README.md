@@ -14,6 +14,15 @@ additional hardware needs to be purchased and the inverter does not need to be c
 
 To further use the data, the mqtt broker from Venus OS can be used.
 
+## Venus OS v3.67 and GUI-v2 Support
+
+This driver now supports **both GUI-v1 (Classic UI) and GUI-v2 (New UI)**. Venus OS v3.50 introduced the new GUI-v2, and v3.67 fully supports it. The installation script automatically detects which GUI version(s) are installed on your system and configures the appropriate interface.
+
+- **GUI-v1 (Classic UI)**: Supported for backward compatibility with older Venus OS versions
+- **GUI-v2 (New UI)**: Fully supported for Venus OS v3.50+ including v3.67
+
+The installer will configure whichever GUI version is available on your system, or both if you have both installed.
+
 ## Todo
 
 - [ ] better logging
@@ -56,8 +65,21 @@ Cooming soon
 
    `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
 
-## GUI
-You can find the settings in the Remote Console under 'settings -> pv inverter -> Huawei...'
+## GUI Settings
+
+You can find the settings in the Remote Console:
+
+- **GUI-v1 (Classic UI)**: Settings → PV Inverters → Huawei SUN2000
+- **GUI-v2 (New UI)**: Settings → PV Inverters → Huawei SUN2000
+
+The settings page allows you to configure:
+- Modbus Host IP address
+- Modbus Port (default: 502)
+- Modbus Unit ID
+- Custom inverter name
+- Position (AC Input 1/2 or AC Output)
+- Update interval in milliseconds
+- Power correction factor
 
 ### Debugging
 
