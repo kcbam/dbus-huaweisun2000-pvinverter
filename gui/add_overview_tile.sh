@@ -59,13 +59,18 @@ fi
 echo "Found PV CHARGER tile at line $LINE_NUM"
 echo "Will insert OverviewSolarInverter after line $CLOSING_BRACE_LINE"
 
+# First, copy the custom Huawei tile component to the GUI directory
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -f "$SCRIPT_DIR/gui/OverviewHuaweiInverter.qml" ]; then
+    echo "Copying custom Huawei inverter tile component..."
+    cp "$SCRIPT_DIR/gui/OverviewHuaweiInverter.qml" /opt/victronenergy/gui/qml/
+fi
+
 # Create a temporary file with the tile component
 # Using tabs to match the indentation of the surrounding code
 cat > /tmp/inverter_tile_$$.txt << 'EOF'
 
-				OverviewSolarInverter {
-					width: 160
-					height: bottomRow.height
+				OverviewHuaweiInverter {
 				}
 EOF
 
