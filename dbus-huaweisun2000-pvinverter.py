@@ -72,11 +72,19 @@ class DbusSun2000Service:
         with self._dbusservice as s:
 
             try:
+                # Get inverter data
                 meter_data = self._data_connector.getData()
 
                 for k, v in meter_data.items():
                     logging.info(f"set {k} to {v}")
                     s[k] = v
+
+                # Get smart meter data (grid import/export) if available
+                grid_meter_data = self._data_connector.getMeterData()
+                if grid_meter_data is not None:
+                    for k, v in grid_meter_data.items():
+                        logging.info(f"set {k} to {v}")
+                        s[k] = v
 
                 # increment UpdateIndex - to show that new data is available (and wrap)
                 s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
@@ -179,6 +187,22 @@ def main():
             '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
             '/Dc/Power': {'initial': 0, 'textformat': _w},
             '/Status': {'initial': ""},
+            # Smart meter data (grid import/export) if DTSU666-H or similar is connected
+            '/Meter/Status': {'initial': 0, 'textformat': _n},
+            '/Meter/Type': {'initial': 0, 'textformat': _n},
+            '/Meter/Power': {'initial': 0, 'textformat': _w},
+            '/Meter/Energy/Import': {'initial': None, 'textformat': _kwh},
+            '/Meter/Energy/Export': {'initial': None, 'textformat': _kwh},
+            '/Meter/L1/Voltage': {'initial': 0, 'textformat': _v},
+            '/Meter/L2/Voltage': {'initial': 0, 'textformat': _v},
+            '/Meter/L3/Voltage': {'initial': 0, 'textformat': _v},
+            '/Meter/L1/Current': {'initial': 0, 'textformat': _a},
+            '/Meter/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Meter/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Meter/L1/Power': {'initial': 0, 'textformat': _w},
+            '/Meter/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Meter/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Meter/Frequency': {'initial': None, 'textformat': _hz},
         }
 
         pvac_output = DbusSun2000Service(

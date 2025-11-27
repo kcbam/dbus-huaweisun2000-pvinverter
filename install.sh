@@ -30,18 +30,81 @@ fi
 
 grep -qxF "$SCRIPT_DIR/install.sh" $filename || echo "$SCRIPT_DIR/install.sh" >> $filename
 
-# The "PV inverters" page in Settings is somewhat specific for Fronius. Let's change that.
-invertersSettingsFile="/opt/victronenergy/gui/qml/PageSettingsFronius.qml"
+# Install GUI-v1 (Classic UI) files if they exist
+guiv1SettingsFile="/opt/victronenergy/gui/qml/PageSettingsFronius.qml"
 
-if (( $(grep -c "PageSettingsHuaweiSUN2000" $invertersSettingsFile) > 0)); then
-    echo "INFO: $invertersSettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+if [ -f "$guiv1SettingsFile" ]; then
+    echo "INFO: Found GUI-v1, installing Classic UI support"
+    if (( $(grep -c "PageSettingsHuaweiSUN2000" $guiv1SettingsFile) > 0)); then
+        echo "INFO: $guiv1SettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+    else
+        echo "INFO: Adding menu entry to $guiv1SettingsFile"
+        sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $guiv1SettingsFile
+    fi
+    cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
 else
-    echo "INFO: Adding menu entry to $invertersSettingsFile"
-    sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
+    echo "INFO: GUI-v1 not found at $guiv1SettingsFile, skipping Classic UI installation"
 fi
 
-cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
+# Install GUI-v2 (New UI) files if they exist
+guiv2SettingsFile="/opt/victronenergy/gui-v2/pages/settings/PageSettings.qml"
+
+if [ -f "$guiv2SettingsFile" ]; then
+    echo "INFO: Found GUI-v2, installing New UI support"
+    if (( $(grep -c "PageSettingsHuaweiSUN2000" $guiv2SettingsFile) > 0)); then
+        echo "INFO: $guiv2SettingsFile seems already modified for HuaweiSUN2000 -- skipping modification"
+    else
+        echo "INFO: Adding menu entry to $guiv2SettingsFile"
+        # Insert before the closing brace of the pv inverters section
+        sed -i "/ListNavigationItem.*PV inverters/a\\$(cat $SCRIPT_DIR/gui-v2/menu_item.txt)" $guiv2SettingsFile
+    fi
+    cp -av $SCRIPT_DIR/gui-v2/*.qml /opt/victronenergy/gui-v2/pages/settings/
+else
+    echo "INFO: GUI-v2 not found at $guiv2SettingsFile, skipping New UI installation"
+fi
+
+# Optional: Install detail page for GUI-v1
+# This provides a dedicated page showing comprehensive inverter data
+if [ -f "$guiv1SettingsFile" ]; then
+    echo ""
+    echo "==================================================================="
+    echo "Optional: Inverter Detail Page"
+    echo "==================================================================="
+    echo "A detailed inverter status page is available showing:"
+    echo "  - Current status and power output"
+    echo "  - Total energy production"
+    echo "  - Per-phase data (L1, L2, L3)"
+    echo "  - DC power and device information"
+    echo ""
+    echo "To install:"
+    echo "  cp $SCRIPT_DIR/gui/PageHuaweiSUN2000Details.qml /opt/victronenergy/gui/qml/"
+    echo ""
+    echo "Then add a menu entry to /opt/victronenergy/gui/qml/PageMain.qml"
+    echo "See README.md for detailed instructions."
+    echo "==================================================================="
+    echo ""
+fi
+
+# Optional: Install overview tile for GUI-v1
+if [ -f "$guiv1SettingsFile" ]; then
+    echo "==================================================================="
+    echo "Optional: Overview Screen Tile"
+    echo "==================================================================="
+    echo "Add a dedicated tile to the overview screen showing:"
+    echo "  - Current power output"
+    echo "  - Total energy production"
+    echo "  - Inverter status"
+    echo ""
+    echo "To install, see: $SCRIPT_DIR/gui/overview_tile_instructions.md"
+    echo "Or check the README.md for quick instructions."
+    echo "==================================================================="
+    echo ""
+fi
 
 # As we've modified the GUI, we need to restart it
-svc -t /service/gui
+if [ -f "$guiv1SettingsFile" ] || [ -f "$guiv2SettingsFile" ]; then
+    echo "Restarting GUI..."
+    svc -t /service/gui
+    echo "Installation complete!"
+fi
 

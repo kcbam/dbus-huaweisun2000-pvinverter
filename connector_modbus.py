@@ -96,6 +96,53 @@ class ModbusDataCollector2000Delux:
 
         return data
 
+    def getMeterData(self):
+        """Read smart meter data if available (DTSU666-H or similar connected via RS485)"""
+        if not self.invSun2000.connect():
+            print("Connection error Modbus TCP")
+            return None
+
+        try:
+            meter_data = {}
+
+            # Check if meter is connected
+            meter_status = self.invSun2000.read(registers.MeterEquipmentRegister.MeterStatus)
+            if meter_status is None or meter_status == 0:
+                return None  # No meter connected
+
+            meter_data['/Meter/Status'] = meter_status
+            meter_data['/Meter/Type'] = self.invSun2000.read(registers.MeterEquipmentRegister.MeterType)
+
+            # Grid power (positive = importing, negative = exporting)
+            meter_data['/Meter/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower)
+
+            # Total energy counters
+            meter_data['/Meter/Energy/Import'] = self.invSun2000.read(registers.MeterEquipmentRegister.PositiveActiveElectricity)
+            meter_data['/Meter/Energy/Export'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower)
+
+            # Per-phase voltages and currents
+            meter_data['/Meter/L1/Voltage'] = self.invSun2000.read(registers.MeterEquipmentRegister.APhaseVoltage)
+            meter_data['/Meter/L2/Voltage'] = self.invSun2000.read(registers.MeterEquipmentRegister.BPhaseVoltage)
+            meter_data['/Meter/L3/Voltage'] = self.invSun2000.read(registers.MeterEquipmentRegister.CPhaseVoltage)
+
+            meter_data['/Meter/L1/Current'] = self.invSun2000.read(registers.MeterEquipmentRegister.APhaseCurrent)
+            meter_data['/Meter/L2/Current'] = self.invSun2000.read(registers.MeterEquipmentRegister.BPhaseCurrent)
+            meter_data['/Meter/L3/Current'] = self.invSun2000.read(registers.MeterEquipmentRegister.CPhaseCurrent)
+
+            # Per-phase power
+            meter_data['/Meter/L1/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.APhaseActivePower)
+            meter_data['/Meter/L2/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.BPhaseActivePower)
+            meter_data['/Meter/L3/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.CPhaseActivePower)
+
+            # Grid frequency
+            meter_data['/Meter/Frequency'] = self.invSun2000.read(registers.MeterEquipmentRegister.GridFrequency)
+
+            return meter_data
+
+        except Exception as e:
+            print(f"Error reading meter data: {e}")
+            return None
+
     def getStaticData(self):
         # the connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():

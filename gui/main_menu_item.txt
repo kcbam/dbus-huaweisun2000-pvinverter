@@ -1,0 +1,8 @@
+		// dbus-huaweisun2000 detail page start
+		MbSubMenu {
+			description: qsTr("Huawei Inverter")
+			subpage: Component { PageHuaweiSUN2000Details {} }
+			show: pvinverterService.valid
+			VBusItem { id: pvinverterService; bind: "com.victronenergy.pvinverter.sun2000/ProductName" }
+		}
+		// dbus-huaweisun2000 detail page end
