@@ -63,8 +63,48 @@ else
     echo "INFO: GUI-v2 not found at $guiv2SettingsFile, skipping New UI installation"
 fi
 
+# Optional: Install detail page for GUI-v1
+# This provides a dedicated page showing comprehensive inverter data
+if [ -f "$guiv1SettingsFile" ]; then
+    echo ""
+    echo "==================================================================="
+    echo "Optional: Inverter Detail Page"
+    echo "==================================================================="
+    echo "A detailed inverter status page is available showing:"
+    echo "  - Current status and power output"
+    echo "  - Total energy production"
+    echo "  - Per-phase data (L1, L2, L3)"
+    echo "  - DC power and device information"
+    echo ""
+    echo "To install:"
+    echo "  cp $SCRIPT_DIR/gui/PageHuaweiSUN2000Details.qml /opt/victronenergy/gui/qml/"
+    echo ""
+    echo "Then add a menu entry to /opt/victronenergy/gui/qml/PageMain.qml"
+    echo "See README.md for detailed instructions."
+    echo "==================================================================="
+    echo ""
+fi
+
+# Optional: Install overview tile for GUI-v1
+if [ -f "$guiv1SettingsFile" ]; then
+    echo "==================================================================="
+    echo "Optional: Overview Screen Tile"
+    echo "==================================================================="
+    echo "Add a dedicated tile to the overview screen showing:"
+    echo "  - Current power output"
+    echo "  - Total energy production"
+    echo "  - Inverter status"
+    echo ""
+    echo "To install, see: $SCRIPT_DIR/gui/overview_tile_instructions.md"
+    echo "Or check the README.md for quick instructions."
+    echo "==================================================================="
+    echo ""
+fi
+
 # As we've modified the GUI, we need to restart it
 if [ -f "$guiv1SettingsFile" ] || [ -f "$guiv2SettingsFile" ]; then
+    echo "Restarting GUI..."
     svc -t /service/gui
+    echo "Installation complete!"
 fi
 

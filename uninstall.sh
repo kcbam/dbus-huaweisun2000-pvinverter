@@ -9,6 +9,31 @@ if [ -f "$guiv1SettingsFile" ]; then
     echo "INFO: Removing GUI-v1 modifications"
     sed -i '/dbus-huaweisun2000 start/,/dbus-huaweisun2000 end/d' $guiv1SettingsFile
     rm -f /opt/victronenergy/gui/qml/PageSettingsHuaweiSUN2000.qml
+
+    # Remove optional detail page if installed
+    if [ -f /opt/victronenergy/gui/qml/PageHuaweiSUN2000Details.qml ]; then
+        echo "INFO: Removing optional detail page"
+        rm -f /opt/victronenergy/gui/qml/PageHuaweiSUN2000Details.qml
+    fi
+
+    # Note about overview tile
+    echo ""
+    echo "==================================================================="
+    echo "MANUAL CLEANUP REQUIRED: Overview Tile"
+    echo "==================================================================="
+    echo "If you installed the optional overview tile, you need to manually"
+    echo "remove it from /opt/victronenergy/gui/qml/OverviewTiles.qml"
+    echo ""
+    echo "1. Restore from backup (if you created one):"
+    echo "   cp /opt/victronenergy/gui/qml/OverviewTiles.qml.backup \\"
+    echo "      /opt/victronenergy/gui/qml/OverviewTiles.qml"
+    echo ""
+    echo "2. Or manually edit the file and remove the OverviewSolarInverter"
+    echo "   component that you added."
+    echo ""
+    echo "3. Also remove any menu entry from PageMain.qml if you added it."
+    echo "==================================================================="
+    echo ""
 fi
 
 # Remove GUI-v2 modifications

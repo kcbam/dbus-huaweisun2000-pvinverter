@@ -106,6 +106,40 @@ Available settings:
 - Update interval in milliseconds
 - Power correction factor
 
+### Overview Tile (Optional)
+
+You can add a dedicated tile to the main overview screen that displays your Huawei inverter at a glance:
+
+**What it shows:**
+- Current power output (real-time generation)
+- Total lifetime energy production
+- Inverter status (running/standby/error)
+- Solar generation icon
+
+**Installation:**
+
+See the detailed instructions in `gui/overview_tile_instructions.md` or follow these steps:
+
+1. Backup the original file:
+   ```bash
+   cp /opt/victronenergy/gui/qml/OverviewTiles.qml /opt/victronenergy/gui/qml/OverviewTiles.qml.backup
+   ```
+
+2. Edit `/opt/victronenergy/gui/qml/OverviewTiles.qml` and find the PV CHARGER tile section (around line 185-194). After the closing brace `}` of the PV CHARGER tile, add:
+   ```qml
+   OverviewSolarInverter {
+       width: 160
+       height: bottomRow.height
+   }
+   ```
+
+3. Restart the GUI:
+   ```bash
+   svc -t /service/gui
+   ```
+
+The tile will appear on the overview screen's scrollable bottom row and automatically detect your Huawei inverter.
+
 ### Inverter Detail Page (Optional)
 
 The repository includes an optional detailed inverter status page (`PageHuaweiSUN2000Details.qml`) that shows:
@@ -115,7 +149,7 @@ The repository includes an optional detailed inverter status page (`PageHuaweiSU
 - DC power
 - Device information (model, serial, firmware)
 
-**To add this page to your main menu:**
+**Installation:**
 
 1. Copy the detail page to the GUI directory:
    ```bash
