@@ -25,16 +25,25 @@ echo "Creating backup: $BACKUP_FILE"
 cp "$TARGET_FILE" "$BACKUP_FILE"
 
 # Find the PV CHARGER tile and add OverviewSolarInverter after it
-# Look for the closing brace of pvChargerTile
-LINE_NUM=$(grep -n "id: pvChargerTile" "$TARGET_FILE" | cut -d: -f1)
+# Strategy 1: Look for the PV CHARGER tile title
+LINE_NUM=$(grep -n 'title: qsTr("PV CHARGER")' "$TARGET_FILE" | cut -d: -f1)
 
 if [ -z "$LINE_NUM" ]; then
     echo "ERROR: Could not find PV CHARGER tile in $TARGET_FILE"
     echo "The file structure may have changed."
-    exit 1
+    echo "Trying alternative method..."
+
+    # Strategy 2: Look for sys.pvCharger
+    LINE_NUM=$(grep -n "sys.pvCharger" "$TARGET_FILE" | head -n 1 | cut -d: -f1)
+
+    if [ -z "$LINE_NUM" ]; then
+        echo "ERROR: Could not find any PV CHARGER references"
+        exit 1
+    fi
 fi
 
-# Find the closing brace after pvChargerTile (scan forward from LINE_NUM)
+# Find the closing brace of this Tile block (scan forward from LINE_NUM)
+# Look for a line with just whitespace and a closing brace
 CLOSING_BRACE_LINE=$(awk -v start="$LINE_NUM" '
     NR > start && /^[[:space:]]*\}[[:space:]]*$/ {
         print NR
