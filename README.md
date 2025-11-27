@@ -1,162 +1,141 @@
 # dbus-huaweisun2000-pvinverter
 
-dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
+DBus driver for Victron Venus OS to integrate Huawei Sun2000 PV inverters with smart meter support.
 
-## Purpose
+## Features
 
-This script is intended to help integrate a Huawei Sun 2000 inverter into the Venus OS and thus also into the VRM
-portal.
+✅ **Venus OS v3.67 Compatible** - Full support for latest Venus OS version
+✅ **Smart Meter Integration** - Track grid import/export with DTSU666-H or similar meters
+✅ **GUI-v1 & GUI-v2 Support** - Works with both Classic UI and New UI
+✅ **Custom Overview Tile** - Real-time PV generation and grid flow display
+✅ **VRM Portal Logging** - Historical data, graphs, and analytics
+✅ **Comprehensive Data** - Per-phase voltage, current, power, and energy tracking
+✅ **Easy Configuration** - All settings accessible via Venus OS GUI
 
-I use a Cerbo GX, which I have integrated via Ethernet in the house network. I used the WiFi of the device to connect to
-the internal WiFi of the Huawei Sun 2000. Attention: No extra dongle is necessary! You can use the integrated Wifi,
-which is actually intended for configuration with the Huawei app (Fusion App or Sun2000 App). The advantage is that no
-additional hardware needs to be purchased and the inverter does not need to be connected to the Internet.
+## What This Driver Provides
 
-To further use the data, the mqtt broker from Venus OS can be used.
+### Inverter Data
+- Real-time power output (AC and DC)
+- Total lifetime energy production
+- Per-phase data (L1, L2, L3): voltage, current, power, frequency
+- Inverter status and error codes
+- Device information (model, serial, firmware)
 
-## Venus OS v3.67 and GUI Support
+### Smart Meter Data (Optional)
+If you have a DTSU666-H or compatible meter connected to your inverter via RS485:
+- **Grid power flow** (positive = importing, negative = exporting)
+- **Total energy imported** from grid (kWh bought)
+- **Total energy exported** to grid (kWh sold)
+- **Per-phase grid data** (L1, L2, L3)
+- **Calculate self-consumption** and grid dependency
 
-This driver supports **GUI-v1 (Classic UI)** which is used by Venus OS v3.67. The installation script automatically detects which GUI version is installed on your system and configures the appropriate interface.
+All data is logged to VRM Portal for historical tracking and analysis.
 
-### GUI Versions Explained
+## Hardware Setup
 
-Venus OS has two GUI systems:
+### Required
+- Victron Venus OS device (Cerbo GX, Raspberry Pi with Venus OS, etc.)
+- Huawei Sun2000 inverter (tested with SUN2000-5KTL-L1)
+- Network connection between Venus OS and inverter (WiFi or Ethernet)
 
-**GUI-v1 (Classic UI)** - QML-based interface
-- Used for on-screen display (HDMI/touch screens)
-- Fully customizable with QML files
-- ✅ **Fully supported by this driver**
-- Location: `/opt/victronenergy/gui/qml/`
+### Optional (for Grid Tracking)
+- DTSU666-H or DDSU666-H power meter
+- Connected to inverter via RS485 (follows Huawei installation guide)
 
-**GUI-v2 (New UI)** - Modern interface with two variants:
-1. **Native QML** (Cerbo GX, GX Touch devices):
-   - Uses Qt6 and modern QML components
-   - Customizable with QML files
-   - Location: `/opt/victronenergy/gui-v2/`
-   - ✅ **Supported by this driver** (for devices that have it)
-
-2. **WebAssembly** (Browser Remote Console):
-   - Compiled binary for web browsers
-   - Cannot be customized (compiled application)
-   - ❌ **Cannot add custom pages** (use dbus settings instead)
-
-**For Raspberry Pi 4 (Venus OS v3.67):**
-- On-screen display uses **GUI-v1** (Classic UI) ✅
-- Remote Console uses **GUI-v2 WebAssembly** (browser only)
-- Settings configured through GUI-v1 work across both interfaces
-
-The installer will configure whichever GUI version is available on your system.
-
-## Todo
-
-- [ ] better logging
-- [x] find out why the most values are missing in the view
-- [x] repair modelname (custom name in config)
-- [x] possibility to change settings via gui
-- [ ] alarm, state
-- [ ] more values: temperature, efficiency
-- [ ] clean code
-
-Cooming soon
+**Note:** The inverter's built-in WiFi can be used! No extra dongles needed - just connect Venus OS to the inverter's internal WiFi access point.
 
 ## Installation
 
-1. Copy the full project directory to the /data/etc folder on your venus:
+### 1. Download and Install Driver
 
-    - /data/dbus-huaweisun2000-pvinverter/
+```bash
+# SSH into your Venus OS device
+ssh root@<your-venus-ip>
 
-   Info: The /data directory persists data on venus os devices while updating the firmware
+# Download the driver
+wget https://github.com/detmin/dbus-huaweisun2000-pvinverter/archive/refs/heads/claude/venus-v3.67-breaking-changes-01BaBzZFNNoAivzvX9GyQDv3.zip -O huawei-driver.zip
 
-   Easy way:
-   ```
-   wget https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
-   unzip main.zip -d /data
-   mv /data/dbus-huaweisun2000-pvinverter-main /data/dbus-huaweisun2000-pvinverter
-   chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
-   rm main.zip
-   ```
+# Extract to /data directory
+unzip huawei-driver.zip -d /data
 
+# Rename to expected directory name
+mv /data/dbus-huaweisun2000-pvinverter-claude-venus-v3.67-breaking-changes-01BaBzZFNNoAivzvX9GyQDv3 /data/dbus-huaweisun2000-pvinverter
 
-3. Edit the config.py file (not longer needed. Watch for Settings in the Remote Console.)
+# Make installation script executable
+chmod +x /data/dbus-huaweisun2000-pvinverter/install.sh
 
-   `nano /data/dbus-huaweisun2000-pvinverter/config.py`
+# Run installer
+sh /data/dbus-huaweisun2000-pvinverter/install.sh
 
-5. Check Modbus TCP Connection to gridinverter
+# Clean up
+rm huawei-driver.zip
+```
 
-   `python /data/dbus-huaweisun2000-pvinverter/connector_modbus.py`
+### 2. Configure Settings
 
-6. Run install.sh
+Navigate to: **Settings → PV Inverters → Huawei SUN2000**
 
-   `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
+Configure:
+- **Modbus Host**: Your inverter's IP address (default: 192.168.200.1)
+- **Modbus Port**: Usually 6607
+- **Modbus Unit ID**: Usually 0
+- **Custom Name**: Optional display name
+- **Position**: Where inverter is connected (AC Input 1/2 or AC Output)
+- **Update Interval**: How often to poll data (default: 1000ms)
 
-## GUI Interface
+The service will automatically restart when you change settings.
 
-### Settings Page
+### 3. Verify Installation
 
-You can configure the driver in the Remote Console:
+```bash
+# Check service is running
+svstat /service/dbus-huaweisun2000-pvinverter
+# Should show: up (pid XXXX) XXX seconds
 
-- **Path**: Settings → PV Inverters → Huawei SUN2000
+# Check inverter data is available
+dbus -y com.victronenergy.pvinverter.sun2000 /Ac/Power GetValue
+dbus -y com.victronenergy.pvinverter.sun2000 /Ac/Energy/Forward GetValue
 
-Available settings:
-- Modbus Host IP address
-- Modbus Port (default: 502)
-- Modbus Unit ID
-- Custom inverter name
-- Position (AC Input 1/2 or AC Output)
-- Update interval in milliseconds
-- Power correction factor
+# If you have a smart meter, check meter data
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Power GetValue
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Energy/Export GetValue
+```
 
-### Overview Tile (Optional)
+## GUI Overview Tile
 
-You can add a dedicated tile to the main overview screen that displays your Huawei inverter at a glance:
-
-**What it shows:**
-- Current power output (real-time generation)
+Add a dedicated tile to your overview screen showing:
+- Current PV generation
 - Total lifetime energy production
-- Inverter status (running/standby/error)
-- Solar generation icon
+- Grid import/export (if meter connected)
 
-**Installation:**
+### Automatic Installation (Recommended)
 
-See the detailed instructions in `gui/overview_tile_instructions.md` or follow these steps:
+```bash
+sh /data/dbus-huaweisun2000-pvinverter/gui/add_overview_tile.sh
+```
 
-1. Backup the original file:
-   ```bash
-   cp /opt/victronenergy/gui/qml/OverviewTiles.qml /opt/victronenergy/gui/qml/OverviewTiles.qml.backup
-   ```
+This script will:
+- Copy the tile component to the GUI directory
+- Find the correct location in OverviewTiles.qml
+- Insert the tile automatically
+- Restart the GUI
 
-2. Edit `/opt/victronenergy/gui/qml/OverviewTiles.qml` and find the PV CHARGER tile section (around line 185-194). After the closing brace `}` of the PV CHARGER tile, add:
-   ```qml
-   OverviewSolarInverter {
-       width: 160
-       height: bottomRow.height
-   }
-   ```
+### Manual Installation
 
-3. Restart the GUI:
-   ```bash
-   svc -t /service/gui
-   ```
+See `gui/overview_tile_instructions.md` for detailed manual installation steps.
 
-The tile will appear on the overview screen's scrollable bottom row and automatically detect your Huawei inverter.
+## Optional: Detailed Inverter Page
 
-### Inverter Detail Page (Optional)
+A comprehensive detail page is available showing all inverter data.
 
-The repository includes an optional detailed inverter status page (`PageHuaweiSUN2000Details.qml`) that shows:
-- Current status and power output
-- Total energy production
-- Per-phase data (L1, L2, L3) - voltage, current, power, frequency, energy
-- DC power
-- Device information (model, serial, firmware)
+**To install:**
 
-**Installation:**
-
-1. Copy the detail page to the GUI directory:
+1. Copy the detail page:
    ```bash
    cp /data/dbus-huaweisun2000-pvinverter/gui/PageHuaweiSUN2000Details.qml /opt/victronenergy/gui/qml/
    ```
 
-2. Edit `/opt/victronenergy/gui/qml/PageMain.qml` and add the menu entry. Find the line with `model: VisibleItemModel {` (around line 20) and add:
+2. Add menu entry to `/opt/victronenergy/gui/qml/PageMain.qml` - find the `model: VisibleItemModel {` line and add:
    ```qml
    MbSubMenu {
        description: qsTr("Huawei Inverter")
@@ -166,78 +145,170 @@ The repository includes an optional detailed inverter status page (`PageHuaweiSU
    }
    ```
 
-3. Restart the GUI:
+3. Restart GUI:
    ```bash
    svc -t /service/gui
    ```
 
-The "Huawei Inverter" menu item will now appear on the main menu when the inverter is connected.
+## VRM Portal Integration
 
-### Debugging
+All data is automatically logged to the VRM Portal at https://vrm.victronenergy.com
 
-You can check the status of the service with svstat:
+**Data Upload Frequency:**
+- Local updates: Every 1 second (configurable)
+- VRM uploads: Every 15 minutes (typical)
+- Historical graphs: 5-minute averages (permanent storage)
 
-`svstat /service/dbus-huaweisun2000-pvinverter`
+**What You'll See in VRM:**
+- Real-time PV generation
+- Grid import/export trends (if meter connected)
+- Energy production statistics
+- Self-consumption percentage
+- Financial tracking (with energy pricing configured)
 
-It will show something like this:
+## Smart Meter Support
 
-`/service/dbus-huaweisun2000-pvinverter: up (pid 10078) 325 seconds`
+If your Huawei inverter has a DTSU666-H or DDSU666-H meter connected via RS485, the driver automatically detects and reads:
 
-If the number of seconds is always 0 or 1 or any other small number, it means that the service crashes and gets
-restarted all the time.
+**Grid Data:**
+- Grid power (positive = import, negative = export)
+- Total energy imported (kWh bought from utility)
+- Total energy exported (kWh sold to utility)
+- Net energy balance
 
-When you think that the script crashes, start it directly from the command line:
+**Example:**
+```bash
+# Check if meter is detected
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Status GetValue
+# Returns 1.0 if meter is connected
 
-`python /data/dbus-huaweisun2000-pvinverter/dbus-huaweisun2000-pvinverter.py`
+# View grid power
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Power GetValue
+# Positive = importing, Negative = exporting
 
-Also useful:
+# Total energy counters
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Energy/Import GetValue
+dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Energy/Export GetValue
+```
 
-`tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
+The overview tile automatically shows grid import/export when a meter is detected!
 
-### Stop the script
+## Debugging
 
-`svc -d /service/dbus-huaweisun2000-pvinverter`
+### Check Service Status
+```bash
+svstat /service/dbus-huaweisun2000-pvinverter
+```
 
-### Start the script
+### View Live Logs
+```bash
+tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal
+```
 
-`svc -u /service/dbus-huaweisun2000-pvinverter`
+### Test Modbus Connection
+```bash
+python /data/dbus-huaweisun2000-pvinverter/connector_modbus.py
+```
 
+### Restart Service
+```bash
+sh /data/dbus-huaweisun2000-pvinverter/restart.sh
+```
 
-### Restart the script
+### Stop/Start Service
+```bash
+svc -d /service/dbus-huaweisun2000-pvinverter  # Stop
+svc -u /service/dbus-huaweisun2000-pvinverter  # Start
+```
 
-If you want to restart the script, for example after changing it, just run the following command:
+## Uninstallation
 
-`sh /data/dbus-huaweisun2000-pvinverter/restart.sh`
-
-## Uninstall the script
-
-Run
-
-   ```
+```bash
 sh /data/dbus-huaweisun2000-pvinverter/uninstall.sh
-rm -r /data/dbus-huaweisun2000-pvinverter/
-   ```
+rm -rf /data/dbus-huaweisun2000-pvinverter
+```
 
-# Examples
+**Note:** If you installed the optional overview tile or detail page, follow the manual cleanup instructions displayed by the uninstall script.
 
-![VRM-01](img/VRM-01.png)
+## Troubleshooting
 
-![VRM-02](img/VRM-02.png)
+### White Screen / GUI Crash
+- **Fixed in Venus OS v3.67**: Driver now uses QtQuick 2 instead of QtQuick 1.1
+- If you see a white screen, ensure you're using the latest version of this driver
 
+### Inverter Not Detected
+- Check IP address in Settings → PV Inverters → Huawei SUN2000
+- Verify network connectivity: `ping <inverter-ip>`
+- Check Modbus port: typically 6607
+- Ensure inverter allows Modbus TCP connections
 
-# Thank you
-## Contributers
+### Meter Data Not Showing
+- Verify meter is physically connected to inverter via RS485
+- Check meter status: `dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Status GetValue`
+- Should return 1.0 if meter is detected
+- If returns 0 or None, check RS485 wiring and inverter settings
 
-DenkBrettl
+### Service Keeps Restarting
+- Run manually to see errors: `python /data/dbus-huaweisun2000-pvinverter/dbus-huaweisun2000-pvinverter.py`
+- Check logs: `tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
+- Verify Modbus connection works: Try connector_modbus.py test script
 
-## Used libraries
+## Technical Details
 
-modified verion of https://github.com/olivergregorius/sun2000_modbus
+### Supported Venus OS Versions
+- Venus OS v3.67 (tested)
+- Venus OS v3.x (should work)
+- Older versions may require GUI-v1 only
 
-## this project is inspired by
+### GUI Versions
+- **GUI-v1 (Classic UI)**: Full support with custom tiles and pages
+- **GUI-v2 (New UI)**: Settings page support (WebAssembly variant cannot add custom pages)
 
-https://github.com/RalfZim/venus.dbus-fronius-smartmeter
+### Modbus Communication
+- Protocol: Modbus TCP
+- Default Port: 6607
+- Unit ID: 0 (typically)
+- Supported Registers: Inverter equipment registers + Meter equipment registers
 
-https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git
+### DBus Paths
+All data exposed via: `com.victronenergy.pvinverter.sun2000`
 
-https://github.com/victronenergy/velib_python.git
+**Inverter Paths:**
+- `/Ac/Power` - Current AC power output (W)
+- `/Ac/Energy/Forward` - Total lifetime energy (kWh)
+- `/Ac/L1/Power`, `/Ac/L2/Power`, `/Ac/L3/Power` - Per-phase power
+- `/Ac/L1/Voltage`, `/Ac/L1/Current` - Per-phase voltage & current
+- `/Dc/Power` - DC input power
+- `/Status` - Inverter status text
+
+**Meter Paths** (if connected):
+- `/Meter/Power` - Grid power (W, +import/-export)
+- `/Meter/Energy/Import` - Total imported energy (kWh)
+- `/Meter/Energy/Export` - Total exported energy (kWh)
+- `/Meter/L1/Power`, `/Meter/L2/Power`, `/Meter/L3/Power` - Per-phase grid power
+
+## Contributing
+
+Contributions are welcome! Please test thoroughly on your hardware before submitting pull requests.
+
+## Credits
+
+**Contributors:**
+- DenkBrettl (original version)
+- Community contributors
+
+**Based on:**
+- Modified version of https://github.com/olivergregorius/sun2000_modbus
+
+**Inspired by:**
+- https://github.com/RalfZim/venus.dbus-fronius-smartmeter
+- https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter
+- https://github.com/victronenergy/velib_python
+
+## License
+
+Open source - use and modify as needed. No warranty provided.
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
