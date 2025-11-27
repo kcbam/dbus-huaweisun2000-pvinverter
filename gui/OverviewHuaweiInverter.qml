@@ -39,9 +39,9 @@ Tile {
 
 				var gridPower = meterPower.value
 				if (gridPower < 0)
-					return "Import: " + gridPower.toFixed(0) + " W"
+					return "Import: " + Math.abs(gridPower).toFixed(0) + " W"
 				else if (gridPower > 0)
-					return "Export: " + Math.abs(gridPower).toFixed(0) + " W"
+					return "Export: " + gridPower.toFixed(0) + " W"
 				else
 					return "Grid: 0 W"
 			}
