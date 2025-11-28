@@ -29,7 +29,7 @@ from vedbus import VeDbusService
 class DbusSun2000Service:
     def __init__(self, servicename, settings, paths, data_connector, serialnumber='X',
                  productname='Huawei Sun2000 PV-Inverter'):
-        self._dbusservice = VeDbusService(servicename)
+        self._dbusservice = VeDbusService(servicename, register=False)
         # self._paths = paths
         self._data_connector = data_connector
 
@@ -65,6 +65,9 @@ class DbusSun2000Service:
             self._dbusservice.add_path(
                 _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
+
+        # Register the service after all paths are added
+        self._dbusservice.register()
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)  # pause in ms before the next request
 
@@ -108,7 +111,7 @@ class DbusGridMeterService:
     Exposes grid import/export as com.victronenergy.grid for proper VRM integration
     """
     def __init__(self, servicename, settings, paths, data_connector, serialnumber='DTSU666'):
-        self._dbusservice = VeDbusService(servicename)
+        self._dbusservice = VeDbusService(servicename, register=False)
         self._data_connector = data_connector
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, settings.get_vrm_instance() + 1))
@@ -139,6 +142,9 @@ class DbusGridMeterService:
             self._dbusservice.add_path(
                 _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p, v: v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
+
+        # Register the service after all paths are added
+        self._dbusservice.register()
 
         GLib.timeout_add(settings.get('update_time_ms'), self._update)
 
