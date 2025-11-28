@@ -86,8 +86,13 @@ class DbusSun2000Service:
                 grid_meter_data = self._data_connector.getMeterData()
                 if grid_meter_data is not None:
                     for k, v in grid_meter_data.items():
-                        logging.info(f"set {k} to {v}")
-                        s[k] = v
+                        # Skip None values and invalid INT32_MAX values (2147483647)
+                        # INT32_MAX typically indicates unavailable data (e.g., unused phases on single-phase meters)
+                        if v is not None and abs(v) < 2147483647:
+                            logging.info(f"set {k} to {v}")
+                            s[k] = v
+                        else:
+                            logging.debug(f"Skipping invalid meter value for {k}: {v}")
 
                 # increment UpdateIndex - to show that new data is available (and wrap)
                 s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
