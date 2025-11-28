@@ -18,37 +18,21 @@ chmod a+x $SCRIPT_DIR/service/log/run
 # create sym-link to run script in deamon
 ln -sfn $SCRIPT_DIR/service /service/$SERVICE_NAME
 
-# Install grid meter service (if meter is connected)
-chmod a+x $SCRIPT_DIR/service-grid/run
-chmod 755 $SCRIPT_DIR/service-grid/run
-chmod a+x $SCRIPT_DIR/service-grid/log/run
-
-# Ask user if they want to install grid meter service
 echo ""
 echo "==================================================================="
-echo "Grid Meter Service Installation"
+echo "Grid Meter Support"
 echo "==================================================================="
-echo "Do you have a DTSU666-H or similar power meter connected to your"
-echo "Huawei inverter via RS485?"
+echo "If you have a DTSU666-H or similar power meter connected to your"
+echo "Huawei inverter via RS485, the driver will automatically detect it"
+echo "and create a separate grid meter service for VRM Portal."
 echo ""
-echo "If YES, this will enable VRM Portal to track:"
+echo "This enables VRM to track:"
 echo "  - Grid import/export power flow"
 echo "  - Total energy bought from grid"
 echo "  - Total energy sold to grid"
 echo "  - Consumption calculations"
 echo ""
-read -p "Install grid meter service? (y/n): " -n 1 -r
-echo ""
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "Installing grid meter service..."
-    ln -sfn $SCRIPT_DIR/service-grid /service/dbus-huaweisun2000-grid
-    echo "✓ Grid meter service installed!"
-    echo "  VRM will now track grid import/export data."
-else
-    echo "Skipping grid meter service installation."
-    echo "You can install it later by running: install.sh"
-fi
+echo "No additional configuration needed - just connect your meter!"
 echo "==================================================================="
 
 # add install-script to rc.local to be ready for firmware update
