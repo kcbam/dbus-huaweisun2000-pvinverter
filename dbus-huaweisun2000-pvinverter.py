@@ -86,13 +86,28 @@ class DbusSun2000Service:
                 grid_meter_data = self._data_connector.getMeterData()
                 if grid_meter_data is not None:
                     for k, v in grid_meter_data.items():
-                        # Skip None values and invalid INT32_MAX values (2147483647)
-                        # INT32_MAX typically indicates unavailable data (e.g., unused phases on single-phase meters)
-                        if v is not None and abs(v) < 2147483647:
+                        # Skip None values and invalid INT32_MAX values
+                        # INT32_MAX can appear as 2147483647, 214748364.7, 21474836.47, etc. (scaled)
+                        # Also validate reasonable ranges for each measurement type
+                        skip = False
+                        if v is None:
+                            skip = True
+                        elif abs(v) >= 2147483647 or abs(v) >= 214748364:  # Catch INT32_MAX and scaled versions
+                            skip = True
+                            logging.debug(f"Skipping INT32_MAX value for {k}: {v}")
+                        elif 'Voltage' in k and abs(v) > 1000:  # Voltage should be < 1000V
+                            skip = True
+                            logging.debug(f"Skipping invalid voltage for {k}: {v}")
+                        elif 'Current' in k and abs(v) > 10000:  # Current should be < 10000A
+                            skip = True
+                            logging.debug(f"Skipping invalid current for {k}: {v}")
+                        elif 'Power' in k and abs(v) > 1000000:  # Power should be < 1MW
+                            skip = True
+                            logging.debug(f"Skipping invalid power for {k}: {v}")
+
+                        if not skip:
                             logging.info(f"set {k} to {v}")
                             s[k] = v
-                        else:
-                            logging.debug(f"Skipping invalid meter value for {k}: {v}")
 
                 # increment UpdateIndex - to show that new data is available (and wrap)
                 s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256

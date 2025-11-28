@@ -145,13 +145,28 @@ class DbusGridMeterService:
                 valid_count = 0
                 for meter_path, grid_path in path_mapping.items():
                     value = self._read_dbus_value(meter_path)
-                    # Skip None values and invalid INT32_MAX values (2147483647)
-                    if value is not None and abs(value) < 2147483647:
+                    # Skip None values and invalid INT32_MAX values (scaled versions too)
+                    # Also validate reasonable ranges
+                    skip = False
+                    if value is None:
+                        skip = True
+                    elif abs(value) >= 214748364:  # Catch INT32_MAX/10 and larger
+                        skip = True
+                        logging.debug(f"Skipping INT32_MAX value for {meter_path}: {value}")
+                    elif 'Voltage' in grid_path and abs(value) > 1000:
+                        skip = True
+                        logging.debug(f"Skipping invalid voltage for {meter_path}: {value}")
+                    elif 'Current' in grid_path and abs(value) > 10000:
+                        skip = True
+                        logging.debug(f"Skipping invalid current for {meter_path}: {value}")
+                    elif 'Power' in grid_path and abs(value) > 1000000:
+                        skip = True
+                        logging.debug(f"Skipping invalid power for {meter_path}: {value}")
+
+                    if not skip:
                         logging.debug(f"set {grid_path} to {value}")
                         s[grid_path] = value
                         valid_count += 1
-                    else:
-                        logging.debug(f"Skipping invalid value for {meter_path}: {value}")
 
                 # Calculate total current and voltage (average of phases) only if we have valid data
                 l1_current = s['/Ac/L1/Current']
