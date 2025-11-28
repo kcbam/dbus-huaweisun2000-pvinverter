@@ -32,7 +32,22 @@ echo "  - Total energy bought from grid"
 echo "  - Total energy sold to grid"
 echo "  - Consumption calculations"
 echo ""
-echo "No additional configuration needed - just connect your meter!"
+echo "Setting up grid meter service (will auto-start if meter detected)..."
+
+# Set permissions for grid meter service
+chmod a+x $SCRIPT_DIR/service-grid/run
+chmod 755 $SCRIPT_DIR/service-grid/run
+chmod a+x $SCRIPT_DIR/service-grid/log/run
+chmod 755 $SCRIPT_DIR/service-grid/log/run
+chmod a+x $SCRIPT_DIR/dbus-grid-meter.py
+chmod 755 $SCRIPT_DIR/dbus-grid-meter.py
+
+# Create symlink for grid meter service
+# The service will auto-exit if no meter is detected, so it's safe to always enable it
+ln -sfn $SCRIPT_DIR/service-grid /service/dbus-huaweisun2000-grid
+
+echo "✓ Grid meter service installed"
+echo "  The service will automatically start if a meter is detected"
 echo "==================================================================="
 
 # add install-script to rc.local to be ready for firmware update

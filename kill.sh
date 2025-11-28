@@ -3,31 +3,40 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SERVICE_NAME=$(basename $SCRIPT_DIR)
 
 echo "==================================================================="
-echo "Stopping Huawei SUN2000 PV Inverter Service"
+echo "Stopping Huawei SUN2000 PV Inverter and Grid Meter Services"
 echo "==================================================================="
 
-# Remove service symlink (prevents automatic restart)
+# Remove service symlinks (prevents automatic restart)
 if [ -L "/service/$SERVICE_NAME" ]; then
-    echo "Removing service symlink..."
+    echo "Removing PV inverter service symlink..."
     rm /service/$SERVICE_NAME
 fi
 
-# Kill supervise process
-echo "Killing supervise process..."
-pkill -f "supervise $SERVICE_NAME" 2>/dev/null
-if [ $? -eq 0 ]; then
-    echo "✓ Supervise process terminated"
+if [ -L "/service/dbus-huaweisun2000-grid" ]; then
+    echo "Removing grid meter service symlink..."
+    rm /service/dbus-huaweisun2000-grid
+fi
+
+# Kill supervise processes
+echo "Killing supervise processes..."
+KILLED_SUPERVISE=0
+pkill -f "supervise $SERVICE_NAME" 2>/dev/null && KILLED_SUPERVISE=1
+pkill -f "supervise dbus-huaweisun2000-grid" 2>/dev/null && KILLED_SUPERVISE=1
+if [ $KILLED_SUPERVISE -eq 1 ]; then
+    echo "✓ Supervise processes terminated"
 else
-    echo "  No supervise process found"
+    echo "  No supervise processes found"
 fi
 
 # Kill Python service processes
 echo "Killing Python service processes..."
-pkill -f "dbus-huaweisun2000-pvinverter.py" 2>/dev/null
-if [ $? -eq 0 ]; then
-    echo "✓ Python service terminated"
+KILLED_PYTHON=0
+pkill -f "dbus-huaweisun2000-pvinverter.py" 2>/dev/null && KILLED_PYTHON=1
+pkill -f "dbus-grid-meter.py" 2>/dev/null && KILLED_PYTHON=1
+if [ $KILLED_PYTHON -eq 1 ]; then
+    echo "✓ Python services terminated"
 else
-    echo "  No Python service process found"
+    echo "  No Python service processes found"
 fi
 
 # Wait a moment for processes to fully terminate
