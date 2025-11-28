@@ -23,6 +23,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
 from vedbus import VeDbusService
 from ve_utils import get_vrm_portal_id
+from vedbus import VeDbusItemImport
 import dbus
 
 
@@ -31,8 +32,8 @@ class DbusGridMeterService:
         self._dbusservice = VeDbusService(servicename)
         self._pv_service_name = pv_service_name
 
-        # Get system bus to read from PV inverter service
-        self._dbusconn = dbus.SessionBus() if 'DBUS_SESSION_BUS_ADDRESS' in os.environ else dbus.SystemBus()
+        # Dictionary to hold VeDbusItemImport objects for reading from PV service
+        self._pv_imports = {}
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, vrm_instance))
 
@@ -95,18 +96,33 @@ class DbusGridMeterService:
                 _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p, v: v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
 
+        # Create VeDbusItemImport objects for all meter paths we need to read
+        # This is the Venus OS recommended way to read from other services
+        meter_paths = [
+            '/Meter/Status', '/Meter/Power', '/Meter/Energy/Import', '/Meter/Energy/Export',
+            '/Meter/L1/Voltage', '/Meter/L2/Voltage', '/Meter/L3/Voltage',
+            '/Meter/L1/Current', '/Meter/L2/Current', '/Meter/L3/Current',
+            '/Meter/L1/Power', '/Meter/L2/Power', '/Meter/L3/Power',
+            '/Meter/Frequency'
+        ]
+
+        for path in meter_paths:
+            self._pv_imports[path] = VeDbusItemImport(
+                bus=dbus.SessionBus() if 'DBUS_SESSION_BUS_ADDRESS' in os.environ else dbus.SystemBus(),
+                serviceName=pv_service_name,
+                path=path,
+                eventCallback=None,
+                createsignal=False
+            )
+
         GLib.timeout_add(update_time_ms, self._update)
 
     def _read_dbus_value(self, path, default=None):
-        """Read a value from the PV inverter's DBus service"""
+        """Read a value from the PV inverter's DBus service using VeDbusItemImport"""
         try:
-            pv_service = self._dbusconn.get_object(self._pv_service_name, path)
-            # Get the com.victronenergy.BusItem interface and call GetValue()
-            interface = dbus.Interface(pv_service, 'com.victronenergy.BusItem')
-            value = interface.GetValue()
-            return value
-        except dbus.exceptions.DBusException as e:
-            logging.debug(f"Could not read {self._pv_service_name}{path}: {e}")
+            if path in self._pv_imports:
+                value = self._pv_imports[path].get_value()
+                return value if value is not None else default
             return default
         except Exception as e:
             logging.debug(f"Error reading {self._pv_service_name}{path}: {e}")
