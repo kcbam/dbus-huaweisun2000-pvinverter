@@ -63,8 +63,7 @@ echo ""
 read_dbus_value() {
     dbus-send --print-reply --system --dest="$1" "$2" \
         com.victronenergy.BusItem.GetValue 2>/dev/null | \
-        awk '/variant/ {gsub(/variant +/,""); print}' | \
-        awk '{print $NF}'
+        sed -n 's/.*variant.*\(int32\|double\) \([-0-9.]*\).*/\2/p'
 }
 
 # Check meter data in PV service

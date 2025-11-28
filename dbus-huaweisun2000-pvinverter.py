@@ -162,7 +162,7 @@ def main():
         _w = lambda p, v: (str(round(v, 1)) + ' W')
         _v = lambda p, v: (str(round(v, 1)) + ' V')
         _hz = lambda p, v: f"{v:.4f}Hz"
-        _n = lambda p, v: f"{v:i}"
+        _n = lambda p, v: str(int(v))  # Integer format
 
 
         dbuspath = {
