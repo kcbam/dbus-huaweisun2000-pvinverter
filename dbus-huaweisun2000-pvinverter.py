@@ -110,8 +110,8 @@ class DbusGridMeterService:
     Separate DBus service for grid meter data (DTSU666-H or similar)
     Exposes grid import/export as com.victronenergy.grid for proper VRM integration
     """
-    def __init__(self, servicename, settings, paths, data_connector, serialnumber='DTSU666'):
-        self._dbusservice = VeDbusService(servicename, register=False)
+    def __init__(self, servicename, settings, paths, data_connector, bus=None, serialnumber='DTSU666'):
+        self._dbusservice = VeDbusService(servicename, bus=bus, register=False)
         self._data_connector = data_connector
 
         logging.debug("%s /DeviceInstance = %d" % (servicename, settings.get_vrm_instance() + 1))
@@ -350,11 +350,14 @@ def main():
                 '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
             }
 
+            # Share the DBus connection from the PV inverter service
+            # This prevents the "Can't register object-path handler" error
             grid_meter = DbusGridMeterService(
                 servicename='com.victronenergy.grid.huawei_meter',
                 settings=settings,
                 paths=grid_paths,
-                data_connector=modbus
+                data_connector=modbus,
+                bus=pvac_output._dbusservice._dbusconn
             )
             logging.info("Grid meter service created successfully!")
         else:
