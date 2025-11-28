@@ -101,7 +101,10 @@ class DbusGridMeterService:
         """Read a value from the PV inverter's DBus service"""
         try:
             pv_service = self._dbusconn.get_object(self._pv_service_name, path)
-            return pv_service.GetValue()
+            # Get the com.victronenergy.BusItem interface and call GetValue()
+            interface = dbus.Interface(pv_service, 'com.victronenergy.BusItem')
+            value = interface.GetValue()
+            return value
         except dbus.exceptions.DBusException as e:
             logging.debug(f"Could not read {self._pv_service_name}{path}: {e}")
             return default

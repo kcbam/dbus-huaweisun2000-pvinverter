@@ -57,15 +57,23 @@ else
 fi
 echo ""
 
+# Helper function to read DBus value
+read_dbus_value() {
+    dbus-send --print-reply --system --dest="$1" "$2" \
+        com.victronenergy.BusItem.GetValue 2>/dev/null | \
+        awk '/variant/ {gsub(/variant +/,""); print}' | \
+        awk '{print $NF}'
+}
+
 # Check meter data in PV service
 echo "4. Meter Data in PV Service:"
 echo "-------------------------------------------------------------------"
-METER_STATUS=$(dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Status 2>/dev/null)
+METER_STATUS=$(read_dbus_value com.victronenergy.pvinverter.sun2000 /Meter/Status)
 if [ -n "$METER_STATUS" ] && [ "$METER_STATUS" != "0" ]; then
     echo "✓ Meter detected! Status: $METER_STATUS"
-    echo "  Meter Power: $(dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Power 2>/dev/null || echo 'N/A') W"
-    echo "  Meter Import: $(dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Energy/Import 2>/dev/null || echo 'N/A') kWh"
-    echo "  Meter Export: $(dbus -y com.victronenergy.pvinverter.sun2000 /Meter/Energy/Export 2>/dev/null || echo 'N/A') kWh"
+    echo "  Meter Power: $(read_dbus_value com.victronenergy.pvinverter.sun2000 /Meter/Power || echo 'N/A') W"
+    echo "  Meter Import: $(read_dbus_value com.victronenergy.pvinverter.sun2000 /Meter/Energy/Import || echo 'N/A') kWh"
+    echo "  Meter Export: $(read_dbus_value com.victronenergy.pvinverter.sun2000 /Meter/Energy/Export || echo 'N/A') kWh"
 else
     echo "✗ No meter detected (Status: ${METER_STATUS:-0})"
     echo "  Connect a DTSU666-H or similar meter via RS485 to enable grid tracking"
@@ -75,12 +83,12 @@ echo ""
 # Check grid service data (if available)
 echo "5. Grid Service Data:"
 echo "-------------------------------------------------------------------"
-GRID_CONNECTED=$(dbus -y com.victronenergy.grid.huawei_meter /Connected 2>/dev/null)
+GRID_CONNECTED=$(read_dbus_value com.victronenergy.grid.huawei_meter /Connected)
 if [ -n "$GRID_CONNECTED" ] && [ "$GRID_CONNECTED" != "0" ]; then
     echo "✓ Grid service connected and reporting"
-    echo "  Grid Power: $(dbus -y com.victronenergy.grid.huawei_meter /Ac/Power 2>/dev/null || echo 'N/A') W"
-    echo "  Grid Import: $(dbus -y com.victronenergy.grid.huawei_meter /Ac/Energy/Forward 2>/dev/null || echo 'N/A') kWh"
-    echo "  Grid Export: $(dbus -y com.victronenergy.grid.huawei_meter /Ac/Energy/Reverse 2>/dev/null || echo 'N/A') kWh"
+    echo "  Grid Power: $(read_dbus_value com.victronenergy.grid.huawei_meter /Ac/Power || echo 'N/A') W"
+    echo "  Grid Import: $(read_dbus_value com.victronenergy.grid.huawei_meter /Ac/Energy/Forward || echo 'N/A') kWh"
+    echo "  Grid Export: $(read_dbus_value com.victronenergy.grid.huawei_meter /Ac/Energy/Reverse || echo 'N/A') kWh"
 else
     echo "✗ Grid service not connected (Status: ${GRID_CONNECTED:-N/A})"
 fi
