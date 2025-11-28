@@ -58,6 +58,11 @@ class DbusGridMeterService:
         self._dbusservice.add_path('/ErrorCode', 0)
         self._dbusservice.add_path('/UpdateIndex', 0)
 
+        # Add required paths for Venus OS system calculator
+        self._dbusservice.add_path('/DeviceType', 345)  # EM24 Ethernet - standard grid meter type
+        self._dbusservice.add_path('/Ac/NumberOfPhases', 1)  # Single phase (L1 only has valid data)
+        self._dbusservice.add_path('/Ac/NumberOfAcInputs', 1)
+
         # formatting
         _kwh = lambda p, v: (str(round(v, 2)) + ' kWh')
         _a = lambda p, v: (str(round(v, 1)) + ' A')
