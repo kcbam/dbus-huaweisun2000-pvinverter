@@ -17,7 +17,8 @@ fi
 
 if pgrep -f "dbus-huaweisun2000-pvinverter.py" > /dev/null; then
     echo "✓ PV inverter process is running"
-    ps aux | grep "dbus-huaweisun2000-pvinverter.py" | grep -v grep
+    PID=$(pgrep -f "dbus-huaweisun2000-pvinverter.py")
+    echo "  PID: $PID"
 else
     echo "✗ PV inverter process NOT running"
 fi
@@ -35,7 +36,8 @@ fi
 
 if pgrep -f "dbus-grid-meter.py" > /dev/null; then
     echo "✓ Grid meter process is running"
-    ps aux | grep "dbus-grid-meter.py" | grep -v grep
+    PID=$(pgrep -f "dbus-grid-meter.py")
+    echo "  PID: $PID"
 else
     echo "✗ Grid meter process NOT running (OK if no meter connected)"
 fi
