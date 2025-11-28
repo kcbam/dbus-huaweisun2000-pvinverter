@@ -23,33 +23,33 @@ chmod a+x $SCRIPT_DIR/service-grid/run
 chmod 755 $SCRIPT_DIR/service-grid/run
 chmod a+x $SCRIPT_DIR/service-grid/log/run
 
-# Check if meter is available before installing grid service
-echo "Checking for connected grid meter..."
-python3 -c "
-from connector_modbus import ModbusDataCollector2000Delux
-from settings import HuaweiSUN2000Settings
-import sys
-settings = HuaweiSUN2000Settings()
-modbus = ModbusDataCollector2000Delux(
-    host=settings.get('modbus_host'),
-    port=settings.get('modbus_port'),
-    modbus_unit=settings.get('modbus_unit'),
-    power_correction_factor=settings.get('power_correction_factor')
-)
-meter_data = modbus.getMeterData()
-sys.exit(0 if meter_data is not None else 1)
-" 2>/dev/null
+# Ask user if they want to install grid meter service
+echo ""
+echo "==================================================================="
+echo "Grid Meter Service Installation"
+echo "==================================================================="
+echo "Do you have a DTSU666-H or similar power meter connected to your"
+echo "Huawei inverter via RS485?"
+echo ""
+echo "If YES, this will enable VRM Portal to track:"
+echo "  - Grid import/export power flow"
+echo "  - Total energy bought from grid"
+echo "  - Total energy sold to grid"
+echo "  - Consumption calculations"
+echo ""
+read -p "Install grid meter service? (y/n): " -n 1 -r
+echo ""
 
-if [ $? -eq 0 ]; then
-    echo "==================================================================="
-    echo "Grid meter detected! Installing grid meter service..."
-    echo "==================================================================="
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Installing grid meter service..."
     ln -sfn $SCRIPT_DIR/service-grid /service/dbus-huaweisun2000-grid
-    echo "Grid meter service installed. VRM will now track grid import/export!"
+    echo "✓ Grid meter service installed!"
+    echo "  VRM will now track grid import/export data."
 else
-    echo "INFO: No grid meter detected. Grid import/export tracking will not be available."
-    echo "      To enable, connect a DTSU666-H or compatible meter to the inverter via RS485."
+    echo "Skipping grid meter service installation."
+    echo "You can install it later by running: install.sh"
 fi
+echo "==================================================================="
 
 # add install-script to rc.local to be ready for firmware update
 filename=/data/rc.local
