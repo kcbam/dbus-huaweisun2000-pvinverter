@@ -18,6 +18,39 @@ chmod a+x $SCRIPT_DIR/service/log/run
 # create sym-link to run script in deamon
 ln -sfn $SCRIPT_DIR/service /service/$SERVICE_NAME
 
+# Install grid meter service (if meter is connected)
+chmod a+x $SCRIPT_DIR/service-grid/run
+chmod 755 $SCRIPT_DIR/service-grid/run
+chmod a+x $SCRIPT_DIR/service-grid/log/run
+
+# Check if meter is available before installing grid service
+echo "Checking for connected grid meter..."
+python3 -c "
+from connector_modbus import ModbusDataCollector2000Delux
+from settings import HuaweiSUN2000Settings
+import sys
+settings = HuaweiSUN2000Settings()
+modbus = ModbusDataCollector2000Delux(
+    host=settings.get('modbus_host'),
+    port=settings.get('modbus_port'),
+    modbus_unit=settings.get('modbus_unit'),
+    power_correction_factor=settings.get('power_correction_factor')
+)
+meter_data = modbus.getMeterData()
+sys.exit(0 if meter_data is not None else 1)
+" 2>/dev/null
+
+if [ $? -eq 0 ]; then
+    echo "==================================================================="
+    echo "Grid meter detected! Installing grid meter service..."
+    echo "==================================================================="
+    ln -sfn $SCRIPT_DIR/service-grid /service/dbus-huaweisun2000-grid
+    echo "Grid meter service installed. VRM will now track grid import/export!"
+else
+    echo "INFO: No grid meter detected. Grid import/export tracking will not be available."
+    echo "      To enable, connect a DTSU666-H or compatible meter to the inverter via RS485."
+fi
+
 # add install-script to rc.local to be ready for firmware update
 filename=/data/rc.local
 if [ ! -f $filename ]

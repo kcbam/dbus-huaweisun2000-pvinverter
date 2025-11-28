@@ -44,10 +44,13 @@ if [ -f "$guiv2SettingsFile" ]; then
     rm -f /opt/victronenergy/gui-v2/pages/settings/PageSettingsHuaweiSUN2000.qml
 fi
 
-# Remove service
+# Remove services
 rm /service/$SERVICE_NAME
-kill $(pgrep -f 'supervise dbus-huaweisun2000-pvinverter')
+rm /service/dbus-huaweisun2000-grid 2>/dev/null || true
+kill $(pgrep -f 'supervise dbus-huaweisun2000-pvinverter') 2>/dev/null || true
+kill $(pgrep -f 'supervise dbus-huaweisun2000-grid') 2>/dev/null || true
 chmod a-x $SCRIPT_DIR/service/run
+chmod a-x $SCRIPT_DIR/service-grid/run 2>/dev/null || true
 $SCRIPT_DIR/restart.sh
 
 # Remove from startup
