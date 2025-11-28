@@ -142,22 +142,42 @@ class DbusGridMeterService:
                 }
 
                 # Read values from PV service and update grid service
+                valid_count = 0
                 for meter_path, grid_path in path_mapping.items():
                     value = self._read_dbus_value(meter_path)
-                    if value is not None:
+                    # Skip None values and invalid INT32_MAX values (2147483647)
+                    if value is not None and abs(value) < 2147483647:
                         logging.debug(f"set {grid_path} to {value}")
                         s[grid_path] = value
+                        valid_count += 1
+                    else:
+                        logging.debug(f"Skipping invalid value for {meter_path}: {value}")
 
-                # Calculate total current and voltage (average of phases)
-                if s['/Ac/L1/Current'] is not None and s['/Ac/L2/Current'] is not None and s['/Ac/L3/Current'] is not None:
-                    s['/Ac/Current'] = (s['/Ac/L1/Current'] + s['/Ac/L2/Current'] + s['/Ac/L3/Current']) / 3.0
+                # Calculate total current and voltage (average of phases) only if we have valid data
+                l1_current = s['/Ac/L1/Current']
+                l2_current = s['/Ac/L2/Current']
+                l3_current = s['/Ac/L3/Current']
+                if l1_current is not None and l2_current is not None and l3_current is not None:
+                    if abs(l1_current) < 1000 and abs(l2_current) < 1000 and abs(l3_current) < 1000:
+                        s['/Ac/Current'] = (l1_current + l2_current + l3_current) / 3.0
 
-                if s['/Ac/L1/Voltage'] is not None and s['/Ac/L2/Voltage'] is not None and s['/Ac/L3/Voltage'] is not None:
-                    s['/Ac/Voltage'] = (s['/Ac/L1/Voltage'] + s['/Ac/L2/Voltage'] + s['/Ac/L3/Voltage']) / 3.0
+                l1_voltage = s['/Ac/L1/Voltage']
+                l2_voltage = s['/Ac/L2/Voltage']
+                l3_voltage = s['/Ac/L3/Voltage']
+                if l1_voltage is not None and l2_voltage is not None and l3_voltage is not None:
+                    if abs(l1_voltage) < 1000 and abs(l2_voltage) < 1000 and abs(l3_voltage) < 1000:
+                        s['/Ac/Voltage'] = (l1_voltage + l2_voltage + l3_voltage) / 3.0
+
+                # Only mark as connected if we got at least some valid data
+                if valid_count > 0:
+                    s['/Connected'] = 1
+                    logging.debug(f"Grid meter connected with {valid_count} valid readings")
+                else:
+                    s['/Connected'] = 0
+                    logging.warning("No valid meter data received from PV service")
 
                 # increment UpdateIndex
                 s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
-                s['/Connected'] = 1
 
             except Exception as e:
                 logging.critical('Error at %s', '_update', exc_info=e)
