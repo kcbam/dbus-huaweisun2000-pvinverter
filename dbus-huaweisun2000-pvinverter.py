@@ -88,6 +88,12 @@ class DbusSun2000Service:
                 # Get smart meter data (grid import/export) if available
                 grid_meter_data = self._data_connector.getMeterData()
                 if grid_meter_data is not None:
+                    # Debug: log all power values from getMeterData()
+                    logging.debug(f"getMeterData() returned {len(grid_meter_data)} items")
+                    for k in sorted(grid_meter_data.keys()):
+                        if 'Power' in k:
+                            logging.debug(f"  getMeterData()['{k}'] = {grid_meter_data[k]}")
+
                     for k, v in grid_meter_data.items():
                         # Skip None values and invalid INT32_MAX values
                         # INT32_MAX can appear as 2147483647, 214748364.7, 21474836.47, etc. (scaled)

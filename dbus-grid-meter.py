@@ -171,11 +171,17 @@ class DbusGridMeterService:
                 for meter_path, grid_path in path_mapping.items():
                     value = self._read_dbus_value(meter_path)
 
+                    # Log what we're reading (especially for power values)
+                    if 'Power' in meter_path:
+                        logging.debug(f"Read {meter_path} = {value}")
+
                     # Skip None values and invalid INT32_MAX values (scaled versions too)
                     # Also validate reasonable ranges
                     skip = False
                     if value is None:
                         skip = True
+                        if 'Power' in meter_path:
+                            logging.debug(f"Skipping None value for {meter_path}")
                     elif abs(value) >= 214748364:  # Catch INT32_MAX/10 and larger
                         skip = True
                         logging.debug(f"Skipping INT32_MAX value for {meter_path}: {value}")
