@@ -46,10 +46,17 @@ class ModbusDataCollector2000Delux:
         self.power_correction_factor = power_correction_factor
 
     def getData(self):
-        # the connect() method internally checks whether there's already a connection
+        # Force disconnect any existing connection to ensure clean state
+        if self.invSun2000.isConnected():
+            logging.debug("Disconnecting existing connection before getData")
+            self.invSun2000.disconnect()
+
+        # Connect fresh for this read cycle
         if not self.invSun2000.connect():
-            print("Connection error Modbus TCP")
+            logging.error("Connection error Modbus TCP")
             return None
+
+        logging.debug(f"Reading inverter data with modbus unit {self.invSun2000.modbus_unit}")
 
         data = {}
 
@@ -65,9 +72,14 @@ class ModbusDataCollector2000Delux:
             '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
         }
 
-        for k, v in dbuspath.items():
-            s = v.get("sun2000")
-            data[k] = self.invSun2000.read(s)
+        try:
+            for k, v in dbuspath.items():
+                s = v.get("sun2000")
+                data[k] = self.invSun2000.read(s)
+        except Exception as e:
+            logging.error(f"Error reading inverter registers: {e}")
+            self.invSun2000.disconnect()
+            return None
 
         state1 = self.invSun2000.read(registers.InverterEquipmentRegister.State1)
         state1_string = ";".join([val for key, val in state1Readable.items() if int(state1)&key>0])
@@ -95,11 +107,20 @@ class ModbusDataCollector2000Delux:
         data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
             data['/Ac/L3/Current']) * self.power_correction_factor
 
+        logging.debug(f"Successfully read inverter data")
+        # Disconnect to ensure clean state for next cycle
+        self.invSun2000.disconnect()
         return data
 
     def getMeterData(self):
         """Read smart meter data if available (DTSU666-H or similar connected via RS485)"""
         logging.debug("getMeterData() called")
+
+        # Force disconnect any existing connection to ensure clean state
+        if self.invSun2000.isConnected():
+            logging.debug("Disconnecting existing connection before getMeterData")
+            self.invSun2000.disconnect()
+
         if not self.invSun2000.connect():
             logging.error("Connection error Modbus TCP in getMeterData")
             return None
@@ -167,19 +188,27 @@ class ModbusDataCollector2000Delux:
                 if 'Power' in k:
                     logging.debug(f"  {k} = {meter_data[k]}")
 
+            # Disconnect to ensure clean state for next cycle
+            self.invSun2000.disconnect()
             return meter_data
 
         except Exception as e:
             logging.error(f"Error reading meter data: {e}")
+            self.invSun2000.disconnect()
             return None
 
     def getStaticData(self):
-        # the connect() method internally checks whether there's already a connection
+        # Force disconnect any existing connection to ensure clean state
+        if self.invSun2000.isConnected():
+            logging.debug("Disconnecting existing connection before getStaticData")
+            self.invSun2000.disconnect()
+
         if not self.invSun2000.connect():
-            print("Connection error Modbus TCP")
+            logging.error("Connection error Modbus TCP in getStaticData")
             return None
 
         try:
+            logging.debug(f"Reading static data with modbus unit {self.invSun2000.modbus_unit}")
             data = {}
             data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
             data['ModelID'] = self.invSun2000.read(registers.InverterEquipmentRegister.ModelID)
@@ -187,10 +216,15 @@ class ModbusDataCollector2000Delux:
                                                                                                                    '')
             data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
             data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
+
+            logging.debug("Successfully read static data")
+            # Disconnect to ensure clean state for next cycle
+            self.invSun2000.disconnect()
             return data
 
-        except:
-            print("Problem while getting static data modbus TCP")
+        except Exception as e:
+            logging.error(f"Problem while getting static data modbus TCP: {e}")
+            self.invSun2000.disconnect()
             return None
 
 

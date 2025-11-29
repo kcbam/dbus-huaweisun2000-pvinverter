@@ -10,22 +10,24 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Sun2000:
-    def __init__(self, host, port=502, timeout=5, wait=2, modbus_unit=0):
+    def __init__(self, host, port=502, timeout=10, wait=3, modbus_unit=0):
         self.wait = wait
         self.modbus_unit = modbus_unit
         self.inverter = ModbusTcpClient(host, port, timeout=timeout)
 
     def connect(self):
         if not self.isConnected():
+            logging.debug(f"Connecting to inverter (unit {self.modbus_unit}) and waiting {self.wait}s...")
             self.inverter.connect()
             time.sleep(self.wait)
             if self.isConnected():
-                logging.info('Successfully connected to inverter')
+                logging.info(f'Successfully connected to inverter (unit {self.modbus_unit})')
                 return True
             else:
-                logging.error('Connection to inverter failed')
+                logging.error(f'Connection to inverter failed (unit {self.modbus_unit})')
                 return False
         else:
+            logging.debug("Already connected, reusing connection")
             return True
 
     def disconnect(self):
