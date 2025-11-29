@@ -137,6 +137,23 @@ class ModbusDataCollector2000Delux:
             # Grid frequency
             meter_data['/Meter/Frequency'] = self.invSun2000.read(registers.MeterEquipmentRegister.GridFrequency)
 
+            # Single-phase system detection and correction
+            # Some single-phase meters (like DTSU666-H in single-phase mode) report total power
+            # correctly but return 0 for individual phase powers. Detect this and correct it.
+            total_power = meter_data.get('/Meter/Power', 0)
+            l1_power = meter_data.get('/Meter/L1/Power', 0)
+            l2_power = meter_data.get('/Meter/L2/Power', 0)
+            l3_power = meter_data.get('/Meter/L3/Power', 0)
+
+            # If all phase powers are effectively zero but total power is significant
+            if (total_power is not None and abs(total_power) > 1 and
+                l1_power is not None and abs(l1_power) < 1 and
+                l2_power is not None and abs(l2_power) < 1 and
+                l3_power is not None and abs(l3_power) < 1):
+                # Single-phase system: assign total power to L1
+                meter_data['/Meter/L1/Power'] = total_power
+                print(f"Single-phase meter detected: Assigned total power {total_power}W to L1")
+
             return meter_data
 
         except Exception as e:
