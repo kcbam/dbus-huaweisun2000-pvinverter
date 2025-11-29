@@ -4,6 +4,7 @@ from sun2000_modbus import registers
 from dbus.mainloop.glib import DBusGMainLoop
 
 from settings import HuaweiSUN2000Settings
+import logging
 
 state1Readable = {
     1: "standby",
@@ -98,9 +99,9 @@ class ModbusDataCollector2000Delux:
 
     def getMeterData(self):
         """Read smart meter data if available (DTSU666-H or similar connected via RS485)"""
-        print("DEBUG: getMeterData() called")
+        logging.debug("getMeterData() called")
         if not self.invSun2000.connect():
-            print("Connection error Modbus TCP")
+            logging.error("Connection error Modbus TCP in getMeterData")
             return None
 
         try:
@@ -108,9 +109,9 @@ class ModbusDataCollector2000Delux:
 
             # Check if meter is connected
             meter_status = self.invSun2000.read(registers.MeterEquipmentRegister.MeterStatus)
-            print(f"DEBUG: Meter status = {meter_status}")
+            logging.debug(f"Meter status = {meter_status}")
             if meter_status is None or meter_status == 0:
-                print(f"DEBUG: Returning None - meter_status is {meter_status}")
+                logging.debug(f"Returning None - meter_status is {meter_status}")
                 return None  # No meter connected
 
             meter_data['/Meter/Status'] = meter_status
@@ -148,7 +149,7 @@ class ModbusDataCollector2000Delux:
             l2_power = meter_data.get('/Meter/L2/Power', 0)
             l3_power = meter_data.get('/Meter/L3/Power', 0)
 
-            print(f"DEBUG: Before single-phase check: Total={total_power}, L1={l1_power}, L2={l2_power}, L3={l3_power}")
+            logging.debug(f"Before single-phase check: Total={total_power}, L1={l1_power}, L2={l2_power}, L3={l3_power}")
 
             # If all phase powers are effectively zero but total power is significant
             if (total_power is not None and abs(total_power) > 1 and
@@ -157,17 +158,17 @@ class ModbusDataCollector2000Delux:
                 l3_power is not None and abs(l3_power) < 1):
                 # Single-phase system: assign total power to L1
                 meter_data['/Meter/L1/Power'] = total_power
-                print(f"Single-phase meter detected: Assigned total power {total_power}W to L1")
+                logging.info(f"Single-phase meter detected: Assigned total power {total_power}W to L1")
 
-            print(f"DEBUG: Returning meter_data with {len(meter_data)} items")
+            logging.debug(f"Returning meter_data with {len(meter_data)} items")
             for k in sorted(meter_data.keys()):
                 if 'Power' in k:
-                    print(f"DEBUG:   {k} = {meter_data[k]}")
+                    logging.debug(f"  {k} = {meter_data[k]}")
 
             return meter_data
 
         except Exception as e:
-            print(f"Error reading meter data: {e}")
+            logging.error(f"Error reading meter data: {e}")
             return None
 
     def getStaticData(self):
