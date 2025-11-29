@@ -164,8 +164,15 @@ class DbusGridMeterService:
 
                 # Read values from PV service and update grid service
                 valid_count = 0
+                total_power = None  # Track total power for single-phase fallback
+
                 for meter_path, grid_path in path_mapping.items():
                     value = self._read_dbus_value(meter_path)
+
+                    # Save total power for potential single-phase fallback
+                    if meter_path == '/Meter/Power':
+                        total_power = value
+
                     # Skip None values and invalid INT32_MAX values (scaled versions too)
                     # Also validate reasonable ranges
                     skip = False
@@ -188,6 +195,19 @@ class DbusGridMeterService:
                         logging.debug(f"set {grid_path} to {value}")
                         s[grid_path] = value
                         valid_count += 1
+
+                # For single-phase systems, if L1 power is 0 or invalid but total power is valid,
+                # use total power for L1 (Huawei meters report total but not per-phase for single phase)
+                num_phases = s['/Ac/NumberOfPhases']
+                if num_phases == 1 and total_power is not None:
+                    if abs(total_power) < 1000000:  # Validate total power is reasonable
+                        l1_power = s['/Ac/L1/Power']
+                        # If L1 power is zero or missing, use total power
+                        if l1_power is None or abs(l1_power) < 1:  # Less than 1W is effectively zero
+                            logging.info(f"Single-phase system: Using total power {total_power}W for L1 (L1 was {l1_power}W)")
+                            s['/Ac/L1/Power'] = total_power
+                            if l1_power is None:
+                                valid_count += 1  # Count this as a valid reading if it was previously None
 
                 # Calculate total current and voltage (average of phases) only if we have valid data
                 l1_current = s['/Ac/L1/Current']
