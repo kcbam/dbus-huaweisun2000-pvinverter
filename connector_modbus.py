@@ -166,7 +166,8 @@ class ModbusDataCollector2000Delux:
 
             # Single-phase system detection and correction
             # Some single-phase meters (like DTSU666-H in single-phase mode) report total power
-            # correctly but return 0 for individual phase powers. Detect this and correct it.
+            # correctly but return 0 or INT32_MAX (not available) for individual phase powers.
+            # Detect this and correct it.
             total_power = meter_data.get('/Meter/Power', 0)
             l1_power = meter_data.get('/Meter/L1/Power', 0)
             l2_power = meter_data.get('/Meter/L2/Power', 0)
@@ -174,11 +175,21 @@ class ModbusDataCollector2000Delux:
 
             logging.debug(f"Before single-phase check: Total={total_power}, L1={l1_power}, L2={l2_power}, L3={l3_power}")
 
-            # If all phase powers are effectively zero but total power is significant
-            if (total_power is not None and abs(total_power) > 1 and
-                l1_power is not None and abs(l1_power) < 1 and
-                l2_power is not None and abs(l2_power) < 1 and
-                l3_power is not None and abs(l3_power) < 1):
+            # Helper function to check if a value is invalid (None, zero, or INT32_MAX)
+            def is_invalid_power(value):
+                if value is None:
+                    return True
+                # Check for INT32_MAX and scaled versions (2147483647, 214748364.7, etc.)
+                if abs(value) >= 214748364:
+                    return True
+                # Check for effectively zero
+                if abs(value) < 1:
+                    return True
+                return False
+
+            # If all phase powers are invalid but total power is significant
+            if (total_power is not None and abs(total_power) > 1 and not is_invalid_power(total_power) and
+                is_invalid_power(l1_power) and is_invalid_power(l2_power) and is_invalid_power(l3_power)):
                 # Single-phase system: assign total power to L1
                 meter_data['/Meter/L1/Power'] = total_power
                 logging.info(f"Single-phase meter detected: Assigned total power {total_power}W to L1")
