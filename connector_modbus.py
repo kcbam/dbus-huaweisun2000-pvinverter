@@ -98,6 +98,7 @@ class ModbusDataCollector2000Delux:
 
     def getMeterData(self):
         """Read smart meter data if available (DTSU666-H or similar connected via RS485)"""
+        print("DEBUG: getMeterData() called")
         if not self.invSun2000.connect():
             print("Connection error Modbus TCP")
             return None
@@ -107,7 +108,9 @@ class ModbusDataCollector2000Delux:
 
             # Check if meter is connected
             meter_status = self.invSun2000.read(registers.MeterEquipmentRegister.MeterStatus)
+            print(f"DEBUG: Meter status = {meter_status}")
             if meter_status is None or meter_status == 0:
+                print(f"DEBUG: Returning None - meter_status is {meter_status}")
                 return None  # No meter connected
 
             meter_data['/Meter/Status'] = meter_status
@@ -145,6 +148,8 @@ class ModbusDataCollector2000Delux:
             l2_power = meter_data.get('/Meter/L2/Power', 0)
             l3_power = meter_data.get('/Meter/L3/Power', 0)
 
+            print(f"DEBUG: Before single-phase check: Total={total_power}, L1={l1_power}, L2={l2_power}, L3={l3_power}")
+
             # If all phase powers are effectively zero but total power is significant
             if (total_power is not None and abs(total_power) > 1 and
                 l1_power is not None and abs(l1_power) < 1 and
@@ -153,6 +158,11 @@ class ModbusDataCollector2000Delux:
                 # Single-phase system: assign total power to L1
                 meter_data['/Meter/L1/Power'] = total_power
                 print(f"Single-phase meter detected: Assigned total power {total_power}W to L1")
+
+            print(f"DEBUG: Returning meter_data with {len(meter_data)} items")
+            for k in sorted(meter_data.keys()):
+                if 'Power' in k:
+                    print(f"DEBUG:   {k} = {meter_data[k]}")
 
             return meter_data
 
