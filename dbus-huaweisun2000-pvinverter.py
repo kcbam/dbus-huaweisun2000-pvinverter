@@ -78,9 +78,12 @@ class DbusSun2000Service:
                 # Get inverter data
                 meter_data = self._data_connector.getData()
 
-                for k, v in meter_data.items():
-                    logging.info(f"set {k} to {v}")
-                    s[k] = v
+                if meter_data is not None:
+                    for k, v in meter_data.items():
+                        logging.info(f"set {k} to {v}")
+                        s[k] = v
+                else:
+                    logging.warning("No inverter data available (connection error)")
 
                 # Get smart meter data (grid import/export) if available
                 grid_meter_data = self._data_connector.getMeterData()
