@@ -29,7 +29,7 @@ import dbus
 
 class DbusGridMeterService:
     def __init__(self, servicename, pv_service_name, vrm_instance, update_time_ms):
-        self._dbusservice = VeDbusService(servicename)
+        self._dbusservice = VeDbusService(servicename, register=False)
         self._pv_service_name = pv_service_name
 
         # Dictionary to hold VeDbusItemImport objects for reading from PV service
@@ -100,6 +100,9 @@ class DbusGridMeterService:
             self._dbusservice.add_path(
                 _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p, v: v), writeable=True,
                 onchangecallback=self._handlechangedvalue)
+
+        # Register the service after all paths are added
+        self._dbusservice.register()
 
         # Create VeDbusItemImport objects for all meter paths we need to read
         # This is the Venus OS recommended way to read from other services
