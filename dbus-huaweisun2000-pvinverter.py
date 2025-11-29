@@ -101,6 +101,8 @@ class DbusSun2000Service:
                         skip = False
                         if v is None:
                             skip = True
+                            if 'Power' in k:
+                                logging.info(f"Skipping None power value for {k}")
                         elif abs(v) >= 2147483647 or abs(v) >= 214748364:  # Catch INT32_MAX and scaled versions
                             skip = True
                             logging.debug(f"Skipping INT32_MAX value for {k}: {v}")

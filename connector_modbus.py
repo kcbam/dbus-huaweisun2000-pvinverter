@@ -138,6 +138,8 @@ class ModbusDataCollector2000Delux:
             meter_data['/Meter/L2/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.BPhaseActivePower)
             meter_data['/Meter/L3/Power'] = self.invSun2000.read(registers.MeterEquipmentRegister.CPhaseActivePower)
 
+            logging.info(f"Read phase powers: L1={meter_data.get('/Meter/L1/Power')}, L2={meter_data.get('/Meter/L2/Power')}, L3={meter_data.get('/Meter/L3/Power')}")
+
             # Grid frequency
             meter_data['/Meter/Frequency'] = self.invSun2000.read(registers.MeterEquipmentRegister.GridFrequency)
 
