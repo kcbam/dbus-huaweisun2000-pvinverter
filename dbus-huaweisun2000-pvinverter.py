@@ -47,6 +47,7 @@ class DbusSun2000Service:
         self._dbusservice.add_path('/DeviceInstance', settings.get_vrm_instance())
         self._dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
         self._dbusservice.add_path('/ProductName', productname)
+        self._dbusservice.add_path('/DeviceName', productname)  # Alias for GUI compatibility
         self._dbusservice.add_path('/CustomName', settings.get("custom_name"))
         self._dbusservice.add_path('/FirmwareVersion', 1.0)
         self._dbusservice.add_path('/HardwareVersion', 0)

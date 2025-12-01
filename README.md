@@ -253,6 +253,25 @@ rm -rf /data/dbus-huaweisun2000-pvinverter
 - Check logs: `tail -f /var/log/dbus-huaweisun2000/current | tai64nlocal`
 - Verify Modbus connection works: Try connector_modbus.py test script
 
+### DBus "NoReply" Errors in GUI Logs
+If you see errors like `QDBusError("org.freedesktop.DBus.Error.NoReply"...)` for `com.victronenergy.grid.huawei_meter`:
+
+**Cause:** You upgraded from an older version that used a separate grid meter service. That service no longer exists - meter data is now integrated into the pvinverter service.
+
+**Fix:**
+```bash
+# Run the cleanup script to remove the old service
+sh /data/dbus-huaweisun2000-pvinverter/cleanup-old-grid-service.sh
+
+# Restart the GUI to clear the errors
+svc -t /service/gui
+```
+
+After cleanup, all meter data will be available on the main service:
+- `com.victronenergy.pvinverter.sun2000/Meter/Power`
+- `com.victronenergy.pvinverter.sun2000/Meter/Energy/Import`
+- `com.victronenergy.pvinverter.sun2000/Meter/Energy/Export`
+
 ## Technical Details
 
 ### Supported Venus OS Versions

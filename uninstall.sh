@@ -44,11 +44,24 @@ if [ -f "$guiv2SettingsFile" ]; then
     rm -f /opt/victronenergy/gui-v2/pages/settings/PageSettingsHuaweiSUN2000.qml
 fi
 
-# Remove service
+# Remove main pvinverter service
 rm /service/$SERVICE_NAME
 kill $(pgrep -f 'supervise dbus-huaweisun2000-pvinverter')
 chmod a-x $SCRIPT_DIR/service/run
 $SCRIPT_DIR/restart.sh
+
+# Remove old grid meter service if it exists (from previous versions)
+if [ -L "/service/dbus-grid-meter" ]; then
+    echo "INFO: Removing old grid meter service"
+    svc -d /service/dbus-grid-meter 2>/dev/null
+    sleep 1
+    rm -f /service/dbus-grid-meter
+    kill $(pgrep -f 'supervise dbus-grid-meter') 2>/dev/null
+fi
+
+# Remove old grid meter files if they exist
+rm -f $SCRIPT_DIR/dbus-grid-meter.py
+rm -rf $SCRIPT_DIR/grid-service
 
 # Remove from startup
 STARTUP=$SCRIPT_DIR/install.sh
