@@ -1,0 +1,26 @@
+name: Upload Release Asset
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on any tag starting with 'v'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Important: allows the script to upload files
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Zip Folder
+        # This zips the current directory, excluding the .git folder
+        run: zip -r project.zip . -x "*.git*"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: project.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
