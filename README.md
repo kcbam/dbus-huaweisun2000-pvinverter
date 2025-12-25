@@ -17,6 +17,8 @@ To further use the data, the mqtt broker from Venus OS can be used.
 ## Todo
 
 - [ ] better logging
+- [ ] enable read out of connected grid meters
+- [ ] allow override of GUI settings via config file
 - [x] find out why the most values are missing in the view
 - [x] repair modelname (custom name in config)
 - [x] possibility to change settings via gui
@@ -26,38 +28,36 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 Cooming soon
 
-## Installation
+## Installation / Upgrade
 
-1. Copy the full project directory to the /data/etc folder on your venus:
+1. Download the latest release and extract it into the /data/ folder on your Venus OS:
 
     - /data/dbus-huaweisun2000-pvinverter/
 
    Info: The /data directory persists data on Venus OS devices even when updating the firmware
 
-   Easy way:
+   Easy way to do this:
    ```
-   wget https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip
-   unzip main.zip -d /data
-   mv /data/dbus-huaweisun2000-pvinverter-main /data/dbus-huaweisun2000-pvinverter
+   rm -f project.zip
+   wget https://github.com/kcbam/dbus-huaweisun2000-pvinverter/releases/latest/download/project.zip
+   mkdir -p /data/dbus-huaweisun2000-pvinverter
+   unzip -o project.zip -d /data/dbus-huaweisun2000-pvinverter
    chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
-   rm main.zip
+   rm project.zip
    ```
+2. Run install.sh
 
+   `/data/dbus-huaweisun2000-pvinverter/install.sh`
 
-3. Edit the config.py file (not longer needed. Watch for Settings in the Remote Console.)
+3. Edit the settings in the *V1* Remote Console under 'Settings -> PV inverters -> Huawei SUN2000'
 
-   `nano /data/dbus-huaweisun2000-pvinverter/config.py`
+4. Restart the driver
 
-5. Check Modbus TCP Connection to gridinverter
+   `sh /data/dbus-huaweisun2000-pvinverter/restart.sh`
+
+5. Optional if it doesn't work: check Modbus TCP Connection to the inverter
 
    `python /data/dbus-huaweisun2000-pvinverter/connector_modbus.py`
-
-6. Run install.sh
-
-   `sh /data/dbus-huaweisun2000-pvinverter/install.sh`
-
-## GUI
-You can find the settings in the Remote Console under 'settings -> pv inverter -> Huawei...'
 
 ### Debugging
 
