@@ -32,7 +32,7 @@ Cooming soon
 
     - /data/dbus-huaweisun2000-pvinverter/
 
-   Info: The /data directory persists data on venus os devices while updating the firmware
+   Info: The /data directory persists data on Venus OS devices even when updating the firmware
 
    Easy way:
    ```
