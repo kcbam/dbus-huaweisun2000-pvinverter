@@ -1,14 +1,14 @@
 # dbus-huaweisun2000-pvinverter
 
-dbus driver for victron cerbo gx / venus os for huawei sun 2000 inverter
+D-Bus driver for Victron Cerbo GX / Venus OS for Huawei SUN 2000 inverters
 
 ## Purpose
 
-This script is intended to help integrate a Huawei Sun 2000 inverter into the Venus OS and thus also into the VRM
+This script is intended to help integrate a Huawei SUN 2000 inverter into the Venus OS and thus also into the VRM
 portal.
 
 I use a Cerbo GX, which I have integrated via Ethernet in the house network. I used the WiFi of the device to connect to
-the internal WiFi of the Huawei Sun 2000. Attention: No extra dongle is necessary! You can use the integrated Wifi,
+the internal WiFi of the Huawei Sun 2000. Note: No extra dongle is necessary! You can use the integrated Wifi,
 which is actually intended for configuration with the Huawei app (Fusion App or Sun2000 App). The advantage is that no
 additional hardware needs to be purchased and the inverter does not need to be connected to the Internet.
 
