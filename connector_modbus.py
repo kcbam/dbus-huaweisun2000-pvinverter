@@ -40,11 +40,12 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995):
-        self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit)
+    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type = 0):
+        self.invSun2000 = inverter.Sun2000(host=host, port=port, unit=modbus_unit, timeout=20)
         self.power_correction_factor = power_correction_factor
+        self.system_type = system_type
 
-    def getData(self):
+    def getInverterData(self):
         # the connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
             print("Connection error Modbus TCP")
@@ -52,17 +53,29 @@ class ModbusDataCollector2000Delux:
 
         data = {}
 
-        dbuspath = {
-            '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
-            '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-            '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
-            '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
-            '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
-            '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
-            '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
-            '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
-            '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
-        }
+        if self.system_type == 1:
+            #three phase inverter
+            dbuspath = {
+                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+            }
+        else:
+            # single phase inverter
+            dbuspath = {
+                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+            }
+
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
@@ -76,26 +89,107 @@ class ModbusDataCollector2000Delux:
 
         energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
         data['/Ac/Energy/Forward'] = energy_forward
-        # There is no Modbus register for the phases
-        data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
+        
+        cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
+        if cosphi < 0.8:
+            cosphi = self.power_correction_factor
 
         freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
-        data['/Ac/L1/Frequency'] = freq
-        data['/Ac/L2/Frequency'] = freq
-        data['/Ac/L3/Frequency'] = freq
 
-        cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
+        # There is no Modbus register for the phases
+        data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
+        data['/Ac/L1/Frequency'] = freq        
         data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
-            data['/Ac/L1/Current']) * self.power_correction_factor
-        data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
-            data['/Ac/L2/Current']) * self.power_correction_factor
-        data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
-            data['/Ac/L3/Current']) * self.power_correction_factor
+            data['/Ac/L1/Current'])
+
+        if self.system_type == 1:
+            #three phase inverter
+            data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
+            data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)        
+            
+            data['/Ac/L2/Frequency'] = freq
+            data['/Ac/L3/Frequency'] = freq
+            data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
+                data['/Ac/L2/Current'])
+            data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
+                data['/Ac/L3/Current'])
 
         return data
 
+    def getMeterData(self):
+        # the connect() method internally checks whether there's already a connection
+        if not self.invSun2000.connect():
+            print("Connection error Modbus TCP")
+            return None
+
+        """ com.victronenergy.grid
+        com.victronenergy.acload (when used as consumer to measure an acload)
+        com.victronenergy.genset (when used as producer to measure a genset)
+
+        /Ac/Energy/Forward     <- kWh  - bought energy (total of all phases)
+        /Ac/Energy/Reverse     <- kWh  - sold energy (total of all phases)
+        /Ac/Power              <- W    - total of all phases, real power
+        /Ac/PowerFactor        <-      - total power factor
+
+        /Ac/Current            <- A AC - Deprecated
+        /Ac/Voltage            <- V AC - Deprecated
+
+        /Ac/L1/Current         <- A AC
+        /Ac/L1/Energy/Forward  <- kWh  - bought
+        /Ac/L1/Energy/Reverse  <- kWh  - sold
+        /Ac/L1/Power           <- W, real power
+        /Ac/L1/PowerFactor     <- power factor
+        /Ac/L1/Voltage         <- V AC
+        /Ac/L2/*               <- same as L1
+        /Ac/L3/*               <- same as L1
+        /DeviceType
+        /ErrorCode
+
+        /IsGenericEnergyMeter  <- When an energy meter masquarades as a genset or acload, this is set to 1. """
+
+        data = {}
+
+        if self.system_type == 1:
+            # three phase meter
+            dbuspath = {
+                '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
+                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},                    
+            }
+        else:
+            # single phase meter            
+            dbuspath = {
+                '/DeviceType' : {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType}, 
+                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
+                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+            }
+
+        data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
+        data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+
+        for k, v in dbuspath.items():
+            s = v.get("sun2000")
+            data[k] = self.invSun2000.read(s)
+
+        cosphi = abs(float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor))))
+        if cosphi < 0.8:
+            cosphi = self.power_correction_factor
+
+        data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
+
+        if self.system_type == 1:
+            # three phase meter
+            data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+            data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
+
+        return data
+    
     def getStaticData(self):
         # the connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
@@ -123,7 +217,7 @@ if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
     settings = HuaweiSUN2000Settings()
     inverter = inverter.Sun2000(host=settings.get("modbus_host"), port=settings.get("modbus_port"),
-                                modbus_unit=settings.get("modbus_unit"))
+                                unit=settings.get("modbus_unit"))
     inverter.connect()
     if inverter.isConnected():
 

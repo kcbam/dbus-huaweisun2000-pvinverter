@@ -6,13 +6,18 @@ from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 from . import datatypes
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+log_format = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(log_format)
+logger.addHandler(handler)
 
 
 class Sun2000:
-    def __init__(self, host, port=502, timeout=5, wait=2, modbus_unit=0):
+    def __init__(self, host, port=502, timeout=5, wait=2, unit=0): # some models need unit=1
         self.wait = wait
-        self.modbus_unit = modbus_unit
+        self.unit = unit
         self.inverter = ModbusTcpClient(host, port, timeout=timeout)
 
     def connect(self):
@@ -20,14 +25,14 @@ class Sun2000:
             self.inverter.connect()
             time.sleep(self.wait)
             if self.isConnected():
-                logging.info('Successfully connected to inverter')
+                logger.info('Successfully connected to inverter')
                 return True
             else:
-                logging.error('Connection to inverter failed')
+                logger.error('Connection to inverter failed')
                 return False
         else:
             return True
-
+        
     def disconnect(self):
         """Close the underlying tcp socket"""
         # Some Sun2000 models with the SDongle WLAN-FE require the TCP connection to be closed
@@ -39,17 +44,21 @@ class Sun2000:
         """Check if underlying tcp socket is open"""
         return self.inverter.is_socket_open()
 
+    @property
+    def connected(self):
+        return self.isConnected()
+
     def read_raw_value(self, register):
         if not self.isConnected():
             raise ValueError('Inverter is not connected')
 
         try:
-            register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
+            register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.unit)
             if type(register_value) == ModbusIOException:
-                logging.error("Inverter modbus unit did not respond")
+                logger.error("Inverter unit did not respond")
                 raise register_value
         except ConnectionException:
-            logging.error("A connection error occurred")
+            logger.error("A connection error occurred")
             raise
 
         return datatypes.decode(register_value.encode()[1:], register.value.data_type)
@@ -62,11 +71,14 @@ class Sun2000:
         else:
             return raw_value / register.value.gain
 
-    def read_formatted(self, register):
+    def read_formatted(self, register, use_locale=False):
         value = self.read(register)
 
         if register.value.unit is not None:
-            return f'{value} {register.value.unit}'
+            if use_locale:
+                return f'{value:n} {register.value.unit}'
+            else:
+                return f'{value} {register.value.unit}'
         elif register.value.mapping is not None:
             return register.value.mapping.get(value, 'undefined')
         else:
@@ -86,12 +98,12 @@ class Sun2000:
         if end_address != 0:
             quantity = end_address - start_address + 1
         try:
-            register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
+            register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.unit)
             if type(register_range_value) == ModbusIOException:
-                logging.error("Inverter modbus unit did not respond")
+                logger.error("Inverter unit did not respond")
                 raise register_range_value
         except ConnectionException:
-            logging.error("A connection error occurred")
+            logger.error("A connection error occurred")
             raise
 
         return datatypes.decode(register_range_value.encode()[1:], datatypes.DataType.MULTIDATA)
