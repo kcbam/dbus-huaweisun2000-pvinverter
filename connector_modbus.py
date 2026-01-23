@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Please adhere to flake8 --ignore E501,E402
+
 from sun2000_modbus import inverter
 from sun2000_modbus import registers
 

@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Please adhere to flake8 --ignore E501,E402
+
 DeviceStatus = {
     0x0000: 'Standby: initializing',
     0x0001: 'Standby: detecting insulation resistance',

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-# flake8 --max-line-length=200 --ignore E402 --show-source
+# Please adhere to flake8 --ignore E501,E402
 
 """
 A class to put a simple service on the dbus, according to victron standards, with constantly updating
@@ -113,7 +112,10 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
     _dbusservice.add_path('/DeviceInstance', instance)
     _dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
     _dbusservice.add_path('/ProductName', productname)
-    _dbusservice.add_path('/CustomName', productname)
+    if settings.get("custom_name") not in ["none", ""]:
+        _dbusservice.add_path('/CustomName', settings.get("custom_name"))
+    else:
+        _dbusservice.add_path('/CustomName', productname)
     _dbusservice.add_path('/FirmwareVersion', 1.0)
     _dbusservice.add_path('/HardwareVersion', 0)
     _dbusservice.add_path('/Connected', 1, writeable=True)
@@ -146,7 +148,7 @@ def main():
     # logging lots of debug data
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        level=config.LOGGING,
+                        level=logging_config.LOGGING,
                         handlers=[
                             logging.StreamHandler()
                         ])

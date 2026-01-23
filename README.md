@@ -46,6 +46,8 @@ Cooming soon
 
    The driver will restart automatically, upon changes to the settings.
 
+   If you can't change the settings via the GUI, you can override the settings via a config file by creating a file called `override_config.py`. Copy the `example_override_config.py` to `override_config.py` and adjust the values as needed. Note that this will override the settings in the GUI at any time and changing settings in the GUI will not have any effect.
+
 ### Debugging
 
 If things don't work: check Modbus TCP Connection to the inverter

@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Please adhere to flake8 --ignore E501,E402
+
 import logging
 import time
 
