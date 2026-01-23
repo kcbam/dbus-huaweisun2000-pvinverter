@@ -37,21 +37,21 @@ MbPage {
 			}
 		}
 
-                MbEditBox {                                                    
-                        id: customName
-                        description: qsTr("Custom Name")
-                        item.bind: Utils.path(settings, "/CustomName")
-                }                                                    
+		MbEditBox {                                                    
+				id: customName
+				description: qsTr("Custom Name")
+				item.bind: Utils.path(settings, "/CustomName")
+		}                                                    
 
-                MbItemOptions {
-                        description: qsTr("Position")
-                        bind: Utils.path(settings, "/Position")
-                        possibleValues: [
-                                MbOption { description: qsTr("AC Input 1"); value: 0 },
-                                MbOption { description: qsTr("AC Input 2"); value: 2 },
-                                MbOption { description: qsTr("AC Output"); value: 1 }
-                        ]
-                }
+		MbItemOptions {
+				description: qsTr("Position")
+				bind: Utils.path(settings, "/Position")
+				possibleValues: [
+						MbOption { description: qsTr("AC Input 1"); value: 0 },
+						MbOption { description: qsTr("AC Input 2"); value: 2 },
+						MbOption { description: qsTr("AC Output"); value: 1 }
+				]
+		}
 
 		MbEditBox {
 			id: updateTimeMS
@@ -65,14 +65,32 @@ MbPage {
 			}
 		}
 
-                MbSpinBox {                                
-                    description: qsTr("Power correction factor")
-                    item {
-                        bind: Utils.path(settings, "/PowerCorrectionFactor")
-                        decimals: 3
-                        step: 0.001
-                    }
-                }
+		MbSpinBox {                                
+			description: qsTr("Power correction factor")
+			item {
+				bind: Utils.path(settings, "/PowerCorrectionFactor")
+				decimals: 3
+				step: 0.001
+			}
+		}
 
+		MbItemOptions {
+				description: qsTr("Use Huawei Meter")
+				bind: Utils.path(settings, "/UseMeter")
+				possibleValues: [
+						MbOption { description: qsTr("No"); value: 0 },
+						MbOption { description: qsTr("Yes, on Grid"); value: 1 },
+						MbOption { description: qsTr("Yes, on AC Load (to be done)"); value: 2 }
+				]
+		}
+
+		MbItemOptions {
+				description: qsTr("System Type")
+				bind: Utils.path(settings, "/SystemType")
+				possibleValues: [
+						MbOption { description: qsTr("Single-phase"); value: 0 },
+						MbOption { description: qsTr("Three-phase"); value: 1 }
+				]
+		}		
 	}
 }
