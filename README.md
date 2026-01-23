@@ -16,9 +16,9 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 ## Todo
 
-- [ ] better logging
-- [ ] enable read out of connected grid meters
-- [ ] allow override of GUI settings via config file
+- [x] better logging
+- [x] enable read out of connected grid meters
+- [x] allow override of GUI settings via config file
 - [x] find out why the most values are missing in the view
 - [x] repair modelname (custom name in config)
 - [x] possibility to change settings via gui
