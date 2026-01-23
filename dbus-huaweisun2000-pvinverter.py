@@ -18,7 +18,7 @@ import logging
 import sys
 import time
 import os
-import config
+import logging_config
 from dbus.mainloop.glib import DBusGMainLoop
 import dbus
 from connector_modbus import ModbusDataCollector2000Delux
