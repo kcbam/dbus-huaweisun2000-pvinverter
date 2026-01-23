@@ -30,3 +30,4 @@ rm -f ${TMP_FILE}
 chmod a+x /data/dbus-huaweisun2000-pvinverter/install.sh
 
 /data/dbus-huaweisun2000-pvinverter/install.sh
+/data/dbus-huaweisun2000-pvinverter/restart.sh
