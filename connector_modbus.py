@@ -40,7 +40,7 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type = 0):
+    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type=0):
         self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit, timeout=20)
         self.power_correction_factor = power_correction_factor
         self.system_type = system_type
@@ -76,20 +76,19 @@ class ModbusDataCollector2000Delux:
                 '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
             }
 
-
         for k, v in dbuspath.items():
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
         state1 = self.invSun2000.read(registers.InverterEquipmentRegister.State1)
-        state1_string = ";".join([val for key, val in state1Readable.items() if int(state1)&key>0])
+        state1_string = ";".join([val for key, val in state1Readable.items() if int(state1) & key > 0])
         data['/Status'] = state1_string
 
         # data['/Ac/StatusCode'] = statuscode
 
         energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
         data['/Ac/Energy/Forward'] = energy_forward
-        
+
         cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
         # It's unclear whether this is needed, leaving it out for the moment
         # if cosphi < 0.8:
@@ -99,15 +98,14 @@ class ModbusDataCollector2000Delux:
 
         # There is no Modbus register for the phases
         data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L1/Frequency'] = freq        
+        data['/Ac/L1/Frequency'] = freq
         data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
             data['/Ac/L1/Current'])
 
         if self.system_type == 1:
-            #three phase inverter
+            # Three phase inverter
             data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
-            data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)        
-            
+            data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
             data['/Ac/L2/Frequency'] = freq
             data['/Ac/L3/Frequency'] = freq
             data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
@@ -146,7 +144,8 @@ class ModbusDataCollector2000Delux:
         /DeviceType
         /ErrorCode
 
-        /IsGenericEnergyMeter  <- When an energy meter masquarades as a genset or acload, this is set to 1. """
+        /IsGenericEnergyMeter  <- When an energy meter masquarades as a genset or acload, this is set to 1.
+        """
 
         data = {}
 
@@ -160,13 +159,13 @@ class ModbusDataCollector2000Delux:
                 '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
                 '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
                 '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
-                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},                    
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},
             }
         else:
-            # Single phase meter            
+            # Single phase meter
             dbuspath = {
-                '/DeviceType' : {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType}, 
-                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},      
+                '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
+                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
                 '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
                 '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
             }
@@ -191,7 +190,7 @@ class ModbusDataCollector2000Delux:
             data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
         return data
-    
+
     def getStaticData(self):
         # The connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
@@ -208,13 +207,12 @@ class ModbusDataCollector2000Delux:
             data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
             return data
 
-        except:
-            print("Problem while getting static data modbus TCP")
+        except Exception as e:
+            print("Problem while getting static data modbus TCP: " + str(e))
             return None
 
 
-
-## Just for testing ##
+# For testing
 if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
     settings = HuaweiSUN2000Settings()

@@ -15,7 +15,7 @@ logger.addHandler(handler)
 
 
 class Sun2000:
-    def __init__(self, host, port=502, timeout=5, wait=2, modbus_unit=0): # some models need modbus_unit=1
+    def __init__(self, host, port=502, timeout=5, wait=2, modbus_unit=0):  # some models need modbus_unit=1
         self.wait = wait
         self.modbus_unit = modbus_unit
         self.inverter = ModbusTcpClient(host, port, timeout=timeout)
@@ -36,8 +36,8 @@ class Sun2000:
     def disconnect(self):
         """Close the underlying tcp socket"""
         # Some Sun2000 models with the SDongle WLAN-FE require the TCP connection to be closed
-        # as soon as possible. Leaving the TCP connection open for an extended time may cause 
-        # dongle reboots and/or FusionSolar portal updates to be delayed or even paused. 
+        # as soon as possible. Leaving the TCP connection open for an extended time may cause
+        # dongle reboots and/or FusionSolar portal updates to be delayed or even paused.
         self.inverter.close()
 
     def isConnected(self):
@@ -54,7 +54,7 @@ class Sun2000:
 
         try:
             register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
-            if type(register_value) == ModbusIOException:
+            if isinstance(register_value, ModbusIOException):
                 logger.error("Inverter unit did not respond")
                 raise register_value
         except ConnectionException:
@@ -99,7 +99,7 @@ class Sun2000:
             quantity = end_address - start_address + 1
         try:
             register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
-            if type(register_range_value) == ModbusIOException:
+            if isinstance(register_range_value, ModbusIOException):
                 logger.error("Inverter unit did not respond")
                 raise register_range_value
         except ConnectionException:
