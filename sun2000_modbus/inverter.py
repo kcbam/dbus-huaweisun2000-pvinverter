@@ -15,9 +15,9 @@ logger.addHandler(handler)
 
 
 class Sun2000:
-    def __init__(self, host, port=502, timeout=5, wait=2, unit=0): # some models need unit=1
+    def __init__(self, host, port=502, timeout=5, wait=2, modbus_unit=0): # some models need modbus_unit=1
         self.wait = wait
-        self.unit = unit
+        self.modbus_unit = modbus_unit
         self.inverter = ModbusTcpClient(host, port, timeout=timeout)
 
     def connect(self):
@@ -32,7 +32,7 @@ class Sun2000:
                 return False
         else:
             return True
-        
+
     def disconnect(self):
         """Close the underlying tcp socket"""
         # Some Sun2000 models with the SDongle WLAN-FE require the TCP connection to be closed
@@ -53,7 +53,7 @@ class Sun2000:
             raise ValueError('Inverter is not connected')
 
         try:
-            register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.unit)
+            register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
             if type(register_value) == ModbusIOException:
                 logger.error("Inverter unit did not respond")
                 raise register_value
@@ -98,7 +98,7 @@ class Sun2000:
         if end_address != 0:
             quantity = end_address - start_address + 1
         try:
-            register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.unit)
+            register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
             if type(register_range_value) == ModbusIOException:
                 logger.error("Inverter unit did not respond")
                 raise register_range_value

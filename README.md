@@ -115,6 +115,7 @@ rm -r /data/dbus-huaweisun2000-pvinverter/
 ## Contributers
 
 DenkBrettl
+ricpax (Energy meter code)
 
 ## Used libraries
 
