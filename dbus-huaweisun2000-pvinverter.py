@@ -76,7 +76,7 @@ class SessionBus(dbus.bus.BusConnection):
 def dbusconnection():
     return SessionBus() if 'DBUS_SESSION_BUS_ADDRESS' in os.environ else SystemBus()
 
-def _handlechangedvalue(self, path, value):
+def handlechangedvalue(path, value):
     logging.debug(f"Got notified of external update of config: {path} set to {value}")
     return True  # accept the change
 
@@ -116,7 +116,7 @@ def NewService(servicename, settings, paths, serialnumber, productname = 'Huawei
     for _path, _settings in paths.items():
         _dbusservice.add_path(
             _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p,v:v), writeable=True, 
-            onchangecallback=self._handlechangedvalue)
+            onchangecallback=handlechangedvalue)
 
     return _dbusservice
 
