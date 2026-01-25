@@ -31,7 +31,15 @@ else
     sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
 fi
 
-cp -av $SCRIPT_DIR/gui/*.qml /opt/victronenergy/gui/qml/
+QT_QUICK_VERSION="`grep "import QtQuick" /opt/victronenergy/gui/qml/main.qml | cut -d ' ' -f 3`"
+if [ -z "${QT_QUICK_VERSION}" ]; then
+    echo "WARNING: Couldn't determine QtQuick version, assuming version 2"
+    QT_QUICK_VERSION=2
+fi
+for QML_FILE in $SCRIPT_DIR/gui/*.qml; do
+    echo "Placing ${QML_FILE} into /opt/victronenergy/gui/qml/`basename ${QML_FILE}`"
+    cat ${QML_FILE} | sed -e s/%%QT_QUICK_VERSION%%/${QT_QUICK_VERSION}/g > /opt/victronenergy/gui/qml/`basename ${QML_FILE}`
+done
 
 # As we've modified the GUI, we need to restart it
 svc -t /service/gui
