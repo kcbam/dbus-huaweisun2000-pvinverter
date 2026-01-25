@@ -61,7 +61,7 @@ class ModbusDataCollector2000Delux:
             dbuspath = {
                 '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
                 '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
                 '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
                 '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
                 '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
@@ -74,7 +74,7 @@ class ModbusDataCollector2000Delux:
             dbuspath = {
                 '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
                 '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
                 '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
                 '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
             }
@@ -93,9 +93,10 @@ class ModbusDataCollector2000Delux:
         data['/Ac/Energy/Forward'] = energy_forward
 
         cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
-        # It's unclear whether this is needed, leaving it out for the moment
-        # if cosphi < 0.8:
-        #    cosphi = self.power_correction_factor
+        # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
+        # from the config
+        if cosphi < 0.8:
+            cosphi = self.power_correction_factor
 
         freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
 
@@ -181,9 +182,10 @@ class ModbusDataCollector2000Delux:
             data[k] = self.invSun2000.read(s)
 
         cosphi = abs(float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor))))
-        # It's unclear whether this is needed, leaving it out for the moment
-        # if cosphi < 0.8:
-        #    cosphi = self.power_correction_factor
+        # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
+        # from the config
+        if cosphi < 0.8:
+            cosphi = self.power_correction_factor
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
