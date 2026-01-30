@@ -1,0 +1,36 @@
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+#
+# Run pre-commit install in your local git repository to install the hooks!
+# Run pre-commit auto-update to update the rev fields and the versions!
+#
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-ast
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        args:
+          - --ignore=E501,E402
+          - --show-source
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        name: YAML Lint
+        entry: yamllint
+        language: python
+        types: [yaml]
+        args: [--strict]
+#  - repo: https://github.com/markdownlint/markdownlint
+#    rev: v0.15.0
+#    hooks:
+#      - id: markdownlint

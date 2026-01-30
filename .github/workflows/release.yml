@@ -1,15 +1,16 @@
+---
 name: Upload Release Asset
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     tags:
-      - 'v*' # Triggers on any tag starting with 'v'
+      - 'v*'  # Triggers on any tag starting with 'v'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Important: allows the script to upload files
+      contents: write  # Important: allows the script to upload files
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

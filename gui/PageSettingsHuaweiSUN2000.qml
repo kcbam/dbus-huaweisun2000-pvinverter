@@ -7,11 +7,11 @@ MbPage {
 	property string settings: "com.victronenergy.settings/Settings/HuaweiSUN2000"
 
 	model: VisibleItemModel {
-                MbEditBoxIp {                                                    
-                        id: modbusHost
-                        description: qsTr("Modbus host IP")
-                        item.bind: Utils.path(settings, "/ModbusHost")
-                }                                                    
+		MbEditBoxIp {
+			id: modbusHost
+			description: qsTr("Modbus host IP")
+			item.bind: Utils.path(settings, "/ModbusHost")
+		}
 
 		MbEditBox {
 			id: modbusPort
@@ -37,11 +37,11 @@ MbPage {
 			}
 		}
 
-		MbEditBox {                                                    
+		MbEditBox {
 				id: customName
 				description: qsTr("Custom Name")
 				item.bind: Utils.path(settings, "/CustomName")
-		}                                                    
+		}
 
 		MbItemOptions {
 				description: qsTr("Position")
@@ -65,7 +65,7 @@ MbPage {
 			}
 		}
 
-		MbSpinBox {                                
+		MbSpinBox {
 			description: qsTr("Power correction factor")
 			item {
 				bind: Utils.path(settings, "/PowerCorrectionFactor")
@@ -91,6 +91,6 @@ MbPage {
 						MbOption { description: qsTr("Single-phase"); value: 0 },
 						MbOption { description: qsTr("Three-phase"); value: 1 }
 				]
-		}		
+		}
 	}
 }
