@@ -3,7 +3,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 #
 # Run pre-commit install in your local git repository to install the hooks!
-# Run pre-commit auto-update to update the rev fields and the versions!
+# Run pre-commit autoupdate to update the rev fields and the versions!
 #
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
