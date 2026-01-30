@@ -114,7 +114,7 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
     _dbusservice.add_path('/Mgmt/ProcessName', __file__ + '_' + role)
     _dbusservice.add_path('/Mgmt/ProcessVersion',
                           'Unkown version, and running on Python ' + platform.python_version())
-    _dbusservice.add_path('/Mgmt/Connection', 'Internal Wifi Modbus TCP')
+    _dbusservice.add_path('/Mgmt/Connection', 'Modbus TCP')
 
     # Create the mandatory objects
     if role == 'pvinverter':

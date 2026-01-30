@@ -22,6 +22,7 @@ To further use the data, the mqtt broker from Venus OS can be used.
 - [x] find out why the most values are missing in the view
 - [x] repair modelname (custom name in config)
 - [x] possibility to change settings via gui
+- [x] fix Status path in DBus, shows all status codes possible instead of correct status
 - [ ] alarm, state
 - [ ] more values: temperature, efficiency
 - [ ] clean code
@@ -81,7 +82,6 @@ Also useful (note that you need to restart this often, as the "current" log file
 
 `svc -u /service/dbus-huaweisun2000-pvinverter`
 
-
 ### Restart the script
 
 If you want to restart the script, for example after changing it, just run the following command:
@@ -103,21 +103,21 @@ rm -r /data/dbus-huaweisun2000-pvinverter/
 
 ![VRM-02](img/VRM-02.png)
 
-
 # Thank you
+
 ## Contributers
 
- * DenkBrettl
- * ricpax (Energy meter code)
+- DenkBrettl
+- ricpax (Energy meter code)
 
 ## Used libraries
 
-modified verion of https://github.com/olivergregorius/sun2000_modbus
+modified verion of <https://github.com/olivergregorius/sun2000_modbus>
 
 ## this project is inspired by
 
-https://github.com/RalfZim/venus.dbus-fronius-smartmeter
+<https://github.com/RalfZim/venus.dbus-fronius-smartmeter>
 
-https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git
+<https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter.git>
 
-https://github.com/victronenergy/velib_python.git
+<https://github.com/victronenergy/velib_python.git>
