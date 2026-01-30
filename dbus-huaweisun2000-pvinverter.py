@@ -43,8 +43,8 @@ class DbusRunServices:
     def _update(self):
         for dbus_service in self.DBusServiceData.values():
             try:
-                data_colector = dbus_service['data']  # get the data collector function
-                data_values = data_colector()  # call the data collector function to get the latest data
+                data_collector = dbus_service['data']  # get the data collector function
+                data_values = data_collector()  # call the data collector function to get the latest data
             except Exception as e:
                 logging.critical("Data collector exception: " + str(e))
                 sys.exit(0)  # Exit to force service restart...
@@ -89,8 +89,21 @@ def dbusconnection():
 
 
 def handlechangedvalue(path, value):
-    logging.debug(f"Got notified of external update of config: {path} set to {value}")
     return True  # accept the change
+
+
+def get_version():
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(current_dir, 'VERSION')
+        with open(file_path, 'r') as file:
+            version = file.readline().strip().split("v")[1]
+            major = version.split('.')[0]
+            minor = ''.join(version.split('.')[1:]).replace('.', '')
+            return f"{major}.{minor}"
+    except Exception as e:
+        logging.error(f"Error reading VERSION file {file_path}: {e}")
+        return '0.1'
 
 
 def NewService(servicename, settings, paths, serialnumber, productname='Huawei Inverter', role='pvinverter'):
@@ -110,13 +123,13 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
         instance = settings.get_vrm_instance() + 1
 
     _dbusservice.add_path('/DeviceInstance', instance)
-    _dbusservice.add_path('/ProductId', 0)  # Huawei does not have a product id
+    _dbusservice.add_path('/ProductId', 0xFFFF)  # Unknown product
     _dbusservice.add_path('/ProductName', productname)
     if settings.get("custom_name") not in ["none", ""]:
         _dbusservice.add_path('/CustomName', settings.get("custom_name"))
     else:
         _dbusservice.add_path('/CustomName', productname)
-    _dbusservice.add_path('/FirmwareVersion', 1.0)
+    _dbusservice.add_path('/FirmwareVersion', get_version())
     _dbusservice.add_path('/HardwareVersion', 0)
     _dbusservice.add_path('/Connected', 1, writeable=True)
 
@@ -127,12 +140,16 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
     _dbusservice.add_path('/Serial', serialnumber)
     _dbusservice.add_path('/ErrorCode', 0)
     _dbusservice.add_path('/UpdateIndex', 0)
-    _dbusservice.add_path('/StatusCode', 7)
+    _dbusservice.add_path('/StatusCode', 7)  # 0 = Startup, 7 = Running, 8 = Standby, 9 = Bootloading, 10 = Error
 
     for _path, _settings in paths.items():
         _dbusservice.add_path(
             _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p, v: v), writeable=True,
             onchangecallback=handlechangedvalue)
+
+    # For debugging
+    # for k, v in _dbusservice._dbusobjects.items():
+    #    logging.info(f"_dbusservice: {k}: Val: {v.GetValue()} Text: {v.GetText()}")
 
     return _dbusservice
 
@@ -185,6 +202,7 @@ def main():
             mainloop.run()
             continue
         else:
+            logging.info("Static data received: " + str(staticdata))
             break
 
     try:
@@ -207,7 +225,7 @@ def main():
             return f"{v:.4f}Hz"
 
         def _n(p, v):
-            return f"{v:i}"
+            return f"{v:d}"
 
         if settings.get("system_type") == 1:
             dbuspath_inv = {
