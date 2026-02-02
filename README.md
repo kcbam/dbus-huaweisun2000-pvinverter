@@ -33,13 +33,13 @@ Cooming soon
 
 1. Download and run the installation / update script:
 
-   ```
+   ```bash
    wget -qO- https://raw.githubusercontent.com/kcbam/dbus-huaweisun2000-pvinverter/main/setup/install_or_update.sh | bash
    ```
 
    This will download the latest release and install it. If you want to install the development version, use:
 
-   ```
+   ```bash
    wget -qO- https://raw.githubusercontent.com/kcbam/dbus-huaweisun2000-pvinverter/main/setup/install_or_update.sh | bash -s dev
    ```
 
@@ -49,7 +49,7 @@ Cooming soon
 
    If you can't change the settings via the GUI, you can override the settings via a config file by creating a file called `override_config.py`. Copy the `example_override_config.py` to `override_config.py` and adjust the values as needed. Note that this will override the settings in the GUI at any time and changing settings in the GUI will not have any effect.
 
-### Debugging
+## Debugging
 
 If things don't work: check Modbus TCP Connection to the inverter
 
@@ -66,7 +66,7 @@ It will show something like this:
 If the number of seconds is always 0 or 1 or any other small number, it means that the service crashes and gets
 restarted all the time.
 
-When you think that the script crashes, start it directly from the command line:
+When you think that the script crashes, stop the service and start it directly from the command line:
 
 `python /data/dbus-huaweisun2000-pvinverter/dbus-huaweisun2000-pvinverter.py`
 
@@ -88,33 +88,33 @@ If you want to restart the script, for example after changing it, just run the f
 
 `sh /data/dbus-huaweisun2000-pvinverter/restart.sh`
 
-## Uninstall the script
+## Uninstall the driver
 
 Run
 
-   ```
+   ```bash
 sh /data/dbus-huaweisun2000-pvinverter/uninstall.sh
 rm -r /data/dbus-huaweisun2000-pvinverter/
    ```
 
-# Examples
+## Examples
 
 ![VRM-01](img/VRM-01.png)
 
 ![VRM-02](img/VRM-02.png)
 
-# Thank you
+## Thank you
 
-## Contributers
+### Contributers
 
 - DenkBrettl
 - ricpax (Energy meter code)
 
-## Used libraries
+### Used libraries
 
 modified verion of <https://github.com/olivergregorius/sun2000_modbus>
 
-## this project is inspired by
+### this project is inspired by
 
 <https://github.com/RalfZim/venus.dbus-fronius-smartmeter>
 
