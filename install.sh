@@ -43,3 +43,6 @@ done
 
 # As we've modified the GUI, we need to restart it
 svc -t /service/gui
+
+# We'll restart the logger as we might have changed the run file
+svc -t /service/$SERVICE_NAME/log
