@@ -4,7 +4,7 @@ echo "SCRIPT_DIR: $SCRIPT_DIR"
 SERVICE_NAME=$(basename $SCRIPT_DIR)
 echo "SERVICE_NAME: $SERVICE_NAME"
 # set permissions for script files
-chmod 755 $SCRIPT_DIR/restart.sh $SCRIPT_DIR/uninstall.sh $SCRIPT_DIR/service/run
+chmod 755 $SCRIPT_DIR/restart.sh $SCRIPT_DIR/uninstall.sh $SCRIPT_DIR/service/run $SCRIPT_DIR/service/log/run
 
 # create sym-link to run script in deamon
 ln -sfn $SCRIPT_DIR/service /service/$SERVICE_NAME
