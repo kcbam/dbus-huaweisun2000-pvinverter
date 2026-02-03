@@ -20,7 +20,7 @@ import os
 import logging_config
 from dbus.mainloop.glib import DBusGMainLoop
 import dbus
-from connector_modbus import ModbusDataCollector2000Delux
+from connector_modbus import ModbusDataCollector2000
 from settings import HuaweiSUN2000Settings
 
 # our own packages from victron
@@ -29,14 +29,16 @@ from vedbus import VeDbusService
 
 
 class DbusRunServices:
-    def __init__(self, services_data, settings):
+    def __init__(self, services_data, settings, logger):
         self.DBusServiceData = services_data
         self.settings = settings
+        self.logger = logger
         self.trials = 0
 
     def run(self):
         GLib.timeout_add(self.settings.get('update_time_ms'), self._update)  # pause in ms before the next request
-        logging.info('Connected to dbus, switching over to MainLoop and waiting for updates')
+        self.logger.info('Connected to dbus, switching over to MainLoop and waiting for updates')
+        self.logger.info('Enable DEBUG logging or use the "dbus-spy" command to inspect data updates on DBus if needed.')
         mainloop = GLib.MainLoop()
         mainloop.run()
 
@@ -46,11 +48,11 @@ class DbusRunServices:
                 data_collector = dbus_service['data']  # get the data collector function
                 data_values = data_collector()  # call the data collector function to get the latest data
             except Exception as e:
-                logging.critical("Data collector exception: " + str(e))
+                self.logger.critical("Data collector exception: " + str(e))
                 sys.exit(0)  # Exit to force service restart...
 
             if data_values is None:
-                logging.critical("TCP connection is probably lost. No data received")
+                self.logger.critical("TCP connection is probably lost. No data received. Retrying...")
                 self.trials += 1
                 if self.trials >= 5:
                     sys.exit(0)  # Exit to force service restart...
@@ -59,7 +61,7 @@ class DbusRunServices:
                 with dbus_service['service'] as s:  # get the dbus service object
                     try:
                         for k, v in data_values.items():
-                            logging.info(f"set {k} to {v}")
+                            self.logger.debug(f"Set {k} to {v}")
                             s[k] = v
 
                         # increment UpdateIndex - to show that new data is available (and wrap)
@@ -69,7 +71,7 @@ class DbusRunServices:
                         self._lastUpdate = time.time()
 
                     except Exception as e:
-                        logging.critical('Error at %s', '_update', exc_info=e)
+                        self.logger.critical('Error at %s', '_update', exc_info=e)
 
         return True
 
@@ -92,7 +94,7 @@ def handlechangedvalue(path, value):
     return True  # accept the change
 
 
-def get_version():
+def get_version(logger):
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(current_dir, 'VERSION')
@@ -102,11 +104,14 @@ def get_version():
             minor = ''.join(version.split('.')[1:]).replace('.', '')
             return f"{major}.{minor}"
     except Exception as e:
-        logging.error(f"Error reading VERSION file {file_path}: {e}")
+        logger.error(f"Error reading VERSION file {file_path}: {e}")
         return '0.1'
 
 
-def NewService(servicename, settings, paths, serialnumber, productname='Huawei Inverter', role='pvinverter'):
+def NewService(servicename, settings, logger, paths, devicedata, role='pvinverter'):
+
+    serialnumber = devicedata['SN']
+    productname = devicedata['Model']
 
     _dbusservice = VeDbusService(servicename, bus=dbusconnection(), register=False)
 
@@ -129,7 +134,7 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
         _dbusservice.add_path('/CustomName', settings.get("custom_name"))
     else:
         _dbusservice.add_path('/CustomName', productname)
-    _dbusservice.add_path('/FirmwareVersion', get_version())
+    _dbusservice.add_path('/FirmwareVersion', get_version(logger))
     _dbusservice.add_path('/HardwareVersion', 0)
     _dbusservice.add_path('/Connected', 1, writeable=True)
 
@@ -148,8 +153,8 @@ def NewService(servicename, settings, paths, serialnumber, productname='Huawei I
             onchangecallback=handlechangedvalue)
 
     # For debugging
-    # for k, v in _dbusservice._dbusobjects.items():
-    #    logging.info(f"_dbusservice: {k}: Val: {v.GetValue()} Text: {v.GetText()}")
+    for k, v in _dbusservice._dbusobjects.items():
+        logger.debug(f"_dbusservice: {k}: Val: {v.GetValue()} Text: {v.GetText()}")
 
     return _dbusservice
 
@@ -159,54 +164,52 @@ def exit_mainloop(mainloop):
 
 
 def main():
-
-    # FIXME: This should be a proper private logger, instead of trying to configure the root logger,
-    # which doesn't work unless force=True is specified and then leads to all sorts of libraries
-    # logging lots of debug data
-    logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        level=logging_config.LOGGING,
-                        handlers=[
-                            logging.StreamHandler()
-                        ])
+    formatter = logging.Formatter("(%(module)s.%(funcName)s) %(levelname)s - %(message)s")
+    logger = logging.getLogger(__name__)
+    logger.propagate = False
+    logger.setLevel(logging_config.LOGGING)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
     DBusGMainLoop(set_as_default=True)
 
-    settings = HuaweiSUN2000Settings()
-    logging.info(f"VRM pvinverter instance: {settings.get_vrm_instance()}")
-    logging.info(f"Settings: ModbusHost '{settings.get('modbus_host')}', ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
-    logging.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}', UpdateTimeMS '{settings.get('update_time_ms')}'")
-    logging.info(f"Settings: PowerCorrectionFactor '{settings.get('power_correction_factor')}'")
+    settings = HuaweiSUN2000Settings(logger)
+    logger.info(f"VRM pvinverter instance: {settings.get_vrm_instance()}")
+    logger.info(f"Settings: ModbusHost '{settings.get('modbus_host')}', ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
+    logger.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}', UpdateTimeMS '{settings.get('update_time_ms')}'")
+    logger.info(f"Settings: PowerCorrectionFactor '{settings.get('power_correction_factor')}'")
 
     while "255" in settings.get("modbus_host"):
         # This catches the initial setting and allows the service to be installed without configuring it first
-        logging.warning(f"Please configure the modbus host and other settings in the VenusOS GUI (current setting: {settings.get('modbus_host')})")
+        logger.warning(f"Please configure the modbus host and other settings in the VenusOS GUI (current setting: {settings.get('modbus_host')})")
         # Running a mainloop means we'll be notified about config changes and exit in that case (which restarts the service)
         mainloop = GLib.MainLoop()
         mainloop.run()
 
-    modbus = ModbusDataCollector2000Delux(host=settings.get("modbus_host"),
-                                          port=settings.get("modbus_port"),
-                                          modbus_unit=settings.get("modbus_unit"),
-                                          power_correction_factor=settings.get("power_correction_factor"),
-                                          system_type=settings.get("system_type"))
+    modbus = ModbusDataCollector2000(logger=logger,
+                                     host=settings.get("modbus_host"),
+                                     port=settings.get("modbus_port"),
+                                     modbus_unit=settings.get("modbus_unit"),
+                                     power_correction_factor=settings.get("power_correction_factor"),
+                                     system_type=settings.get("system_type"))
 
     while True:
         staticdata = modbus.getStaticData()
         if staticdata is None:
-            logging.error("Didn't receive static data from modbus, error is above. Sleeping 10 seconds before retrying.")
+            logger.error("Didn't receive static data from modbus, error is above. Sleeping 10 seconds before retrying.")
             # Again we sleep in the mainloop in order to pick up config changes
             mainloop = GLib.MainLoop()
             GLib.timeout_add(10000, exit_mainloop, mainloop)
             mainloop.run()
             continue
         else:
-            logging.info("Static data received: " + str(staticdata))
+            logger.info("Static device data: " + str(staticdata))
             break
 
     try:
-        logging.info("Starting up")
+        logger.info("Starting up")
 
         # formatting
         def _kwh(p, v):
@@ -304,24 +307,24 @@ def main():
 
         inverter_service = NewService(servicename='com.victronenergy.pvinverter.sun2000',
                                       settings=settings,
+                                      logger=logger,
                                       paths=dbuspath_inv,
-                                      productname=staticdata['Model'],
-                                      serialnumber=staticdata['SN'],
+                                      devicedata=staticdata,
                                       role='pvinverter')
         DbusServices['pvinverter'] = {'service': inverter_service, 'data': modbus.getInverterData}
 
         meter_service_grid = NewService(servicename='com.victronenergy.grid.ddsu666h',
                                         settings=settings,
+                                        logger=logger,
                                         paths=dbuspath_meter,
-                                        productname='DDSU666-H Meter',
-                                        serialnumber='123456',
+                                        devicedata={'Model': 'DDSU666-H Meter', 'SN': '123456'},
                                         role='grid')
 
         meter_service_acload = NewService(servicename='com.victronenergy.acload.ddsu666h',
                                           settings=settings,
+                                          logger=logger,
                                           paths=dbuspath_meter,
-                                          productname='DDSU666-H Meter',
-                                          serialnumber='123456',
+                                          devicedata={'Model': 'DDSU666-H Meter', 'SN': '123456'},
                                           role='acload')
 
         usemeter = settings.get("use_meter")
@@ -330,19 +333,20 @@ def main():
         elif usemeter == 2:
             DbusServices['meter'] = {'service': meter_service_acload, 'data': modbus.getMeterData}
         else:
-            logging.info('No meter service created, as use_meter is set to %s', usemeter)
+            logger.info('No meter service created, as use_meter is set to %s', usemeter)
 
         for dbus_service in DbusServices.values():
             dbus_service['service'].register()
 
         run_services = DbusRunServices(
             services_data=DbusServices,
-            settings=settings
+            settings=settings,
+            logger=logger
         )
         run_services.run()
 
     except Exception as e:
-        logging.critical('Error at %s', 'main', exc_info=e)
+        logger.critical('Error at %s', 'main', exc_info=e)
 
 
 if __name__ == "__main__":

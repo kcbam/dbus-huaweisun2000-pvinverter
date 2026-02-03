@@ -16,18 +16,13 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 ## Todo
 
-- [x] better logging
-- [x] enable read out of connected grid meters
-- [x] allow override of GUI settings via config file
-- [x] find out why the most values are missing in the view
-- [x] repair modelname (custom name in config)
-- [x] possibility to change settings via gui
-- [x] fix Status path in DBus, shows all status codes possible instead of correct status
-- [ ] alarm, state
+- [ ] Display alarm values
 - [ ] more values: temperature, efficiency
 - [ ] clean code
-
-Cooming soon
+- [ ] If possible, identify the meter model (DDSU666-H or DTSU666-H) and serial number
+- [ ] Make register set configurable so that more SUN2000 models can be supported
+- [ ] Add support for multiple inverters
+- [ ] Venus OS gui-v2 support
 
 ## Installation / Update
 

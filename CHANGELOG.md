@@ -4,6 +4,15 @@
 
 * GitHub: <https://github.com/kcbam/dbus-huaweisun2000-pvinverter/>
 
+## v1.6.0
+
+Reworked logging completely. Fixed the StatusCode and Status fields to show
+sensible data. Small code improvements.
+
+## v1.5.1
+
+Fixed bug in the installer that would lead to the logging not starting.
+
 ## v1.5
 
 Fixed critical bug that made it so that a significant amount of the DBus paths wouldn't be registered.

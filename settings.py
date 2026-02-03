@@ -22,7 +22,8 @@ class SessionBus(dbus.bus.BusConnection):
 
 class HuaweiSUN2000Settings(object):
 
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         # path, default value, min, max, logging silent or not
         supported_settings = {
             "modbus_host": ["/Settings/HuaweiSUN2000/ModbusHost", "192.168.200.1", "", "", 0],
@@ -53,8 +54,8 @@ class HuaweiSUN2000Settings(object):
         return SessionBus() if "DBUS_SESSION_BUS_ADDRESS" in os.environ else SystemBus()
 
     def _handle_changed_setting(self, setting, oldvalue, newvalue):
-        logging.info(f"setting changed, setting: {setting}, old: {oldvalue}, new: {newvalue}")
-        logging.info("Exiting due to new setting. The service will get restarted and pick up the new setting.")
+        self.logger.info(f"setting changed, setting: {setting}, old: {oldvalue}, new: {newvalue}")
+        self.logger.info("Exiting due to new setting. The service will get restarted and pick up the new setting.")
         # I consider this to be a bit of a hack, but it works for now. If there are config changes, the
         # service exits and gets restarted and thus picks up the new settings values.
         sys.exit(0)

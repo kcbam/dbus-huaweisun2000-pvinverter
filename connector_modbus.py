@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # Please adhere to flake8 --ignore E501,E402
 
+import logging
+
 from sun2000_modbus import inverter
 from sun2000_modbus import registers
 
@@ -11,40 +13,43 @@ from settings import HuaweiSUN2000Settings
 state1Readable = {
     1: "standby",
     2: "grid connected",
-    4: "grid connected normaly",
-    8: "grid connection with derating due to power rationing",
-    16: "grid connection with derating due to internal causes of the solar inverter",
+    4: "grid connected normally",
+    8: "derating due to power rationing",
+    16: "derating due to internal causes of the solar inverter",
     32: "normal stop",
     64: "stop due to faults",
     128: "stop due to power",
     256: "shutdown",
     512: "spot check"
 }
+
 state2Readable = {
     1: "locking status (0:locked;1:unlocked)",
-    2: "pv connection stauts (0:disconnected;1:conncted)",
-    4: "grid connected normaly",
-    8: "grid connection with derating due to power rationing",
-    16: "grid connection with derating due to internal causes of the solar inverter",
+    2: "pv connection status (0:disconnected;1:connected)",
+    4: "grid connected normally",
+    8: "derating due to power rationing",
+    16: "derating due to internal causes of the solar inverter",
     32: "normal stop",
     64: "stop due to faults",
     128: "stop due to power",
     256: "shutdown",
     512: "spot check"
 }
+
 state3Readable = {
     1: "off-grid(0:on-grid;1:off-grid",
     2: "off-grid-switch(0:disable;1:enable)"
 }
+
 alert1Readable = {
     1: "",
     2: ""
 }
 
 
-class ModbusDataCollector2000Delux:
-    def __init__(self, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type=0):
-        self.invSun2000 = inverter.Sun2000(host=host, port=port, modbus_unit=modbus_unit, timeout=20)
+class ModbusDataCollector2000:
+    def __init__(self, logger, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type=0):
+        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20)
         self.power_correction_factor = power_correction_factor
         self.system_type = system_type
 
@@ -83,11 +88,45 @@ class ModbusDataCollector2000Delux:
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
-        state1 = self.invSun2000.read(registers.InverterEquipmentRegister.State1)
-        state1_string = ";".join([val for key, val in state1Readable.items() if int(state1) & key > 0])
-        data['/Status'] = state1_string
+        data['/Status'] = self.invSun2000.read_formatted(registers.InverterEquipmentRegister.DeviceStatus)
 
-        # data['/Ac/StatusCode'] = statuscode
+        # Matching the DeviceStatus code mapping to the
+        # codes for 'pvinverter' from the Victron dbus manual
+        # https://github.com/victronenergy/venus/wiki/dbus#pv-inverters
+        # 0=Startup 0; 1=Startup 1; 2=Startup 2; 3=Startup 3;
+        # 4=Startup 4; 5=Startup 5; 6=Startup 6; 7=Running;
+        # 8=Standby; 9=Boot loading; 10=Error
+        match data['/Status']:
+            case "Starting":
+                data['/StatusCode'] = 0
+            case "On-grid":
+                data['/StatusCode'] = 7
+            case "Grid connection: power limited":
+                data['/StatusCode'] = 7
+            case "Grid connection: self-derating":
+                data['/StatusCode'] = 7
+            case "Shutdown: fault":
+                data['/StatusCode'] = 10
+            case "Shutdown: command":
+                data['/StatusCode'] = 10
+            case "Shutdown: OVGR":
+                data['/StatusCode'] = 10
+            case "Shutdown: communication disconnected":
+                data['/StatusCode'] = 10
+            case "Shutdown: power limited":
+                data['/StatusCode'] = 10
+            case "Shutdown: manual startup required":
+                data['/StatusCode'] = 10
+            case "Shutdown: DC switches disconnected":
+                data['/StatusCode'] = 10
+            case "Shutdown: rapid cutoff":
+                data['/StatusCode'] = 10
+            case "Shutdown: input underpowered":
+                data['/StatusCode'] = 10
+            case "Standby: no irradiation":
+                data['/StatusCode'] = 8
+            case _:
+                data['/StatusCode'] = 7  # Let's put the default to "running" (7)
 
         energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
         data['/Ac/Energy/Forward'] = energy_forward
@@ -112,10 +151,8 @@ class ModbusDataCollector2000Delux:
             data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
             data['/Ac/L2/Frequency'] = freq
             data['/Ac/L3/Frequency'] = freq
-            data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(
-                data['/Ac/L2/Current'])
-            data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(
-                data['/Ac/L3/Current'])
+            data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+            data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
         return data
 
@@ -220,7 +257,13 @@ class ModbusDataCollector2000Delux:
 # For testing
 if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
-    settings = HuaweiSUN2000Settings()
+    formatter = logging.Formatter("(%(module)s.%(funcName)s) %(levelname)s - %(message)s")
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    settings = HuaweiSUN2000Settings(logger)
     inverter = inverter.Sun2000(host=settings.get("modbus_host"), port=settings.get("modbus_port"),
                                 modbus_unit=settings.get("modbus_unit"))
     inverter.connect()
@@ -234,4 +277,4 @@ if __name__ == "__main__":
                 datata[f.name] = inverter.read_formatted(f)
 
         for k, v in datata.items():
-            print(f"{k}: {v}")
+            logger.debug(f"{k}: {v}")
