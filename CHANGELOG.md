@@ -7,7 +7,7 @@
 ## v1.6.0
 
 Reworked logging completely. Fixed the StatusCode and Status fields to show
-sensible data. Small code improvements.
+sensible data. Show status changes of devices in the logfile. Code improvements.
 
 ## v1.5.1
 

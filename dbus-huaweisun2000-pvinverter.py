@@ -60,9 +60,25 @@ class DbusRunServices:
                 self.trials = 0
                 with dbus_service['service'] as s:  # get the dbus service object
                     try:
+                        # Preserve previous status so we can log changes later
+                        try:
+                            old_status = s['/Status']
+                            if old_status == '' or old_status is None:
+                                old_status = 'unknown'
+                        except KeyError:
+                            old_status = None
+
+                        # Update all the values in the dbus service with the ones we got from the inverter
                         for k, v in data_values.items():
                             self.logger.debug(f"Set {k} to {v}")
                             s[k] = v
+
+                        # Log the status changes of the device, which shouldn't be too many and
+                        # sometimes it's of value for the user to know.
+                        if old_status is not None and s['/Status'] != old_status:
+                            if s['/Status'] == '' or s['/Status'] is None:
+                                s['/Status'] = 'unknown'
+                            self.logger.info(f'Device status changed from {old_status} to {s["/Status"]}')
 
                         # increment UpdateIndex - to show that new data is available (and wrap)
                         s['/UpdateIndex'] = (s['/UpdateIndex'] + 1) % 256
@@ -233,8 +249,6 @@ def main():
         if settings.get("system_type") == 1:
             dbuspath_inv = {
                 '/Ac/Power': {'initial': 0, 'textformat': _w},
-                '/Ac/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/Voltage': {'initial': 0, 'textformat': _v},
                 '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
                 #
                 '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
@@ -277,8 +291,6 @@ def main():
         else:
             dbuspath_inv = {
                 '/Ac/Power': {'initial': 0, 'textformat': _w},
-                '/Ac/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/Voltage': {'initial': 0, 'textformat': _v},
                 '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
                 #
                 '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
