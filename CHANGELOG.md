@@ -9,6 +9,10 @@
 Reworked logging completely. Fixed the StatusCode and Status fields to show
 sensible data. Show status changes of devices in the logfile. Code improvements.
 
+### BREAKING CHANGES
+
+* The setting "PowerCorrectionFactor" has been renamed to "PCFOverride".
+
 ## v1.5.1
 
 Fixed bug in the installer that would lead to the logging not starting.

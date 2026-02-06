@@ -48,9 +48,9 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000:
-    def __init__(self, logger, host='192.168.200.1', port=6607, modbus_unit=0, power_correction_factor=0.995, system_type=0):
+    def __init__(self, logger, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0):
         self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20)
-        self.power_correction_factor = power_correction_factor
+        self.pcf_override = pcf_override
         self.system_type = system_type
 
     def getInverterData(self):
@@ -135,7 +135,7 @@ class ModbusDataCollector2000:
         # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
         # from the config
         if cosphi < 0.8:
-            cosphi = self.power_correction_factor
+            cosphi = self.pcf_override
 
         freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
 
@@ -222,7 +222,7 @@ class ModbusDataCollector2000:
         # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
         # from the config
         if cosphi < 0.8:
-            cosphi = self.power_correction_factor
+            cosphi = self.pcf_override
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
@@ -236,21 +236,20 @@ class ModbusDataCollector2000:
     def getStaticData(self):
         # The connect() method internally checks whether there's already a connection
         if not self.invSun2000.connect():
-            print("Connection error Modbus TCP")
+            self.logger.error("Error connecting to Modbus TCP")
             return None
 
         try:
             data = {}
             data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
             data['ModelID'] = self.invSun2000.read(registers.InverterEquipmentRegister.ModelID)
-            data['Model'] = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model)).replace('\0',
-                                                                                                                   '')
+            data['Model'] = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model)).replace('\0', '')
             data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
             data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
             return data
 
         except Exception as e:
-            print("Problem while getting static data modbus TCP: " + str(e))
+            self.logger.error("Error getting static data via Modbus TCP: " + str(e))
             return None
 
 

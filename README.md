@@ -26,7 +26,9 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
 ## Installation / Update
 
-1. Download and run the installation / update script:
+1. When updating, read the CHANGELOG.md to see whether there are breaking changes that need your attention.
+
+2. Download and run the installation / update script:
 
    ```bash
    wget -qO- https://raw.githubusercontent.com/kcbam/dbus-huaweisun2000-pvinverter/main/setup/install_or_update.sh | bash
@@ -38,7 +40,7 @@ To further use the data, the mqtt broker from Venus OS can be used.
    wget -qO- https://raw.githubusercontent.com/kcbam/dbus-huaweisun2000-pvinverter/main/setup/install_or_update.sh | bash -s dev
    ```
 
-2. Edit the settings in the *V1* Remote Console under 'Settings -> PV inverters -> Huawei SUN2000'
+3. Edit the settings in the *V1* Remote Console under 'Settings -> PV inverters -> Huawei SUN2000'
 
    The driver will restart automatically, upon changes to the settings.
 

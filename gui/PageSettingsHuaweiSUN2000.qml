@@ -66,9 +66,9 @@ MbPage {
 		}
 
 		MbSpinBox {
-			description: qsTr("Power correction factor")
+			description: qsTr("PCF override")
 			item {
-				bind: Utils.path(settings, "/PowerCorrectionFactor")
+				bind: Utils.path(settings, "/PCFOverride")
 				decimals: 3
 				step: 0.001
 			}

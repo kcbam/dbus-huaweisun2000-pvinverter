@@ -32,7 +32,7 @@ class HuaweiSUN2000Settings(object):
             "custom_name": ["/Settings/HuaweiSUN2000/CustomName", "none", "", "", 0],
             "position": ["/Settings/HuaweiSUN2000/Position", 0, 0, 2, 0],
             "update_time_ms": ["/Settings/HuaweiSUN2000/UpdateTimeMS", 1000, 100, 10000000, 0],
-            "power_correction_factor": ["/Settings/HuaweiSUN2000/PowerCorrectionFactor", 0.995, 0.001, 100.0, 0],
+            "pcf_override": ["/Settings/HuaweiSUN2000/PCFOverride", 0.995, 0.001, 100.0, 0],
             # "HuaweiSUN2000" is our unique id for the moment. This needs some more thought if more than one inverter shall be supported.
             # Unfortunately we can't use the serial number, because we need the config in order to get that one, so we have a catch-22.
             "vrm_instance": ["/Settings/Devices/HuaweiSUN2000/ClassAndVrmInstance", "pvinverter:1", "", "", 0],

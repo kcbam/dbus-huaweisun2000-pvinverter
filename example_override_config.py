@@ -17,8 +17,11 @@ class ConfigOverride:
         settings["position"] = 0
         # Update time in milliseconds
         settings["update_time_ms"] = 1000
-        # Power correction factor
-        settings["power_correction_factor"] = 0.995
+        # Power Correction Factor override. The inverter will adapt its power generation to
+        # the grid power factor and report it in its own data. This overrides the value that the
+        # inverter reports, if the value is below 0.8, which indicates that it's not a sensible
+        # reading.
+        settings["pcf_override"] = 0.995
         # 0 = No, 1 = Yes, on Grid, 2 = Yes, on AC Out 2 (not implemented yet)
         settings["use_meter"] = 0
         # 0 = Single Phase, 1 = Three Phase

@@ -195,7 +195,8 @@ def main():
     logger.info(f"VRM pvinverter instance: {settings.get_vrm_instance()}")
     logger.info(f"Settings: ModbusHost '{settings.get('modbus_host')}', ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
     logger.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}', UpdateTimeMS '{settings.get('update_time_ms')}'")
-    logger.info(f"Settings: PowerCorrectionFactor '{settings.get('power_correction_factor')}'")
+    logger.info(f"Settings: PCFOverride '{settings.get('pcf_override')}'")
+    logger.info(f"Settings: SystemType '{settings.get('system_type')}'")
 
     while "255" in settings.get("modbus_host"):
         # This catches the initial setting and allows the service to be installed without configuring it first
@@ -208,7 +209,7 @@ def main():
                                      host=settings.get("modbus_host"),
                                      port=settings.get("modbus_port"),
                                      modbus_unit=settings.get("modbus_unit"),
-                                     power_correction_factor=settings.get("power_correction_factor"),
+                                     pcf_override=settings.get("pcf_override"),
                                      system_type=settings.get("system_type"))
 
     while True:
