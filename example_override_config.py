@@ -3,9 +3,13 @@
 
 class ConfigOverride:
     def adjust_settings(self, settings):
+        # Modbus register definition version for the inverter. Huawei uses different register
+        # definitions for different inverter models. The default is V3. The list and explanation
+        # of the different versions can be found in the sun2000_modbus/inverter_registers.py file.
+        settings["modbus_version"] = "V3"
         # IP address for the inverter
         settings["modbus_host"] = "192.168.200.1"
-        # Modbus port for the inverter
+        # Modbus port for the inverter, typically 502 or 6607
         settings["modbus_port"] = 6607
         # Modbus unit for the inverter, most often 0, some models need 1.
         # If you use a SmartLogger, this is the Communication Addres or

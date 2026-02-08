@@ -26,6 +26,7 @@ class HuaweiSUN2000Settings(object):
         self.logger = logger
         # path, default value, min, max, logging silent or not
         supported_settings = {
+            "modbus_version": ["/Settings/HuaweiSUN2000/ModbusVersion", "V3", "", "", 0],
             "modbus_host": ["/Settings/HuaweiSUN2000/ModbusHost", "192.168.200.1", "", "", 0],
             "modbus_port": ["/Settings/HuaweiSUN2000/ModbusPort", 6607, 1, 65536, 0],
             "modbus_unit": ["/Settings/HuaweiSUN2000/ModbusUnit", 0, 0, 247, 0],

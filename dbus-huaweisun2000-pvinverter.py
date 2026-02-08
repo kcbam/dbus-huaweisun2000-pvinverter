@@ -193,9 +193,10 @@ def main():
 
     settings = HuaweiSUN2000Settings(logger)
     logger.info(f"VRM pvinverter instance: {settings.get_vrm_instance()}")
-    logger.info(f"Settings: ModbusHost '{settings.get('modbus_host')}', ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
-    logger.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}', UpdateTimeMS '{settings.get('update_time_ms')}'")
-    logger.info(f"Settings: PCFOverride '{settings.get('pcf_override')}'")
+    logger.info(f"Settings: ModbusVersion '{settings.get('modbus_version')}', ModbusHost '{settings.get('modbus_host')}'")
+    logger.info(f"Settings: ModbusPort '{settings.get('modbus_port')}', ModbusUnit '{settings.get('modbus_unit')}'")
+    logger.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}'")
+    logger.info(f"Settings: UpdateTimeMS '{settings.get('update_time_ms')}', PCFOverride '{settings.get('pcf_override')}'")
     logger.info(f"Settings: SystemType '{settings.get('system_type')}'")
 
     while "255" in settings.get("modbus_host"):
@@ -206,6 +207,7 @@ def main():
         mainloop.run()
 
     modbus = ModbusDataCollector2000(logger=logger,
+                                     modbus_version=settings.get("modbus_version").strip().upper(),
                                      host=settings.get("modbus_host"),
                                      port=settings.get("modbus_port"),
                                      modbus_unit=settings.get("modbus_unit"),

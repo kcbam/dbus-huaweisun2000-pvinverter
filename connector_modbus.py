@@ -4,7 +4,8 @@
 import logging
 
 from sun2000_modbus import inverter
-from sun2000_modbus import registers
+from sun2000_modbus import inverter_registers
+from sun2000_modbus import meter_registers
 
 from dbus.mainloop.glib import DBusGMainLoop
 
@@ -48,10 +49,12 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000:
-    def __init__(self, logger, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0):
+    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0):
         self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20)
+        self.logger = logger
         self.pcf_override = pcf_override
         self.system_type = system_type
+        self.this_inverter = inverter_registers.InverterRegister.get(modbus_version)
 
     def getInverterData(self):
         # the connect() method internally checks whether there's already a connection
@@ -64,31 +67,31 @@ class ModbusDataCollector2000:
         if self.system_type == 1:
             # Three phase inverter
             dbuspath = {
-                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
-                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBCurrent},
-                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseBVoltage},
-                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCCurrent},
-                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseCVoltage},
-                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
-                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+                '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseAVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseBCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseBVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseCCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseCVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
             }
         else:
             # Single phase inverter
             dbuspath = {
-                '/Ac/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.PhaseAVoltage},
-                '/Dc/Power': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.InputPower},
-                '/Ac/MaxPower': {'initial': 0, "sun2000": registers.InverterEquipmentRegister.MaximumActivePower},
+                '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseAVoltage},
+                '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
+                '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
             }
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
-        data['/Status'] = self.invSun2000.read_formatted(registers.InverterEquipmentRegister.DeviceStatus)
+        data['/Status'] = self.invSun2000.read_formatted(self.this_inverter.DeviceStatus)
 
         # Matching the DeviceStatus code mapping to the
         # codes for 'pvinverter' from the Victron dbus manual
@@ -128,16 +131,16 @@ class ModbusDataCollector2000:
             case _:
                 data['/StatusCode'] = 7  # Let's put the default to "running" (7)
 
-        energy_forward = self.invSun2000.read(registers.InverterEquipmentRegister.AccumulatedEnergyYield)
+        energy_forward = self.invSun2000.read(self.this_inverter.AccumulatedEnergyYield)
         data['/Ac/Energy/Forward'] = energy_forward
 
-        cosphi = float(self.invSun2000.read((registers.InverterEquipmentRegister.PowerFactor)))
+        cosphi = float(self.invSun2000.read((self.this_inverter.PowerFactor)))
         # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
         # from the config
         if cosphi < 0.8:
             cosphi = self.pcf_override
 
-        freq = self.invSun2000.read(registers.InverterEquipmentRegister.GridFrequency)
+        freq = self.invSun2000.read(self.this_inverter.GridFrequency)
 
         # There is no Modbus register for the phases
         data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
@@ -193,32 +196,32 @@ class ModbusDataCollector2000:
         if self.system_type == 1:
             # Three phase meter
             dbuspath = {
-                '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
-                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
-                '/Ac/L2/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseCurrent},
-                '/Ac/L2/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.BPhaseVoltage},
-                '/Ac/L3/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseCurrent},
-                '/Ac/L3/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.CPhaseVoltage},
+                '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
+                '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
+                '/Ac/L2/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseCurrent},
+                '/Ac/L2/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseVoltage},
+                '/Ac/L3/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseCurrent},
+                '/Ac/L3/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseVoltage},
             }
         else:
             # Single phase meter
             dbuspath = {
-                '/DeviceType': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.MeterType},
-                '/Ac/Power': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseCurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": registers.MeterEquipmentRegister.APhaseVoltage},
+                '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
+                '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
+                '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
             }
 
-        data['/Ac/Energy/Forward'] = self.invSun2000.read(registers.MeterEquipmentRegister.ActivePower) / 1000
-        data['/Ac/Energy/Reverse'] = self.invSun2000.read(registers.MeterEquipmentRegister.ReverseActivePower) / 1000
+        data['/Ac/Energy/Forward'] = self.invSun2000.read(meter_registers.MeterRegister.ActivePower) / 1000
+        data['/Ac/Energy/Reverse'] = self.invSun2000.read(meter_registers.MeterRegister.ReverseActivePower) / 1000
 
         for k, v in dbuspath.items():
             s = v.get("sun2000")
             data[k] = self.invSun2000.read(s)
 
-        cosphi = abs(float(self.invSun2000.read((registers.MeterEquipmentRegister.PowerFactor))))
+        cosphi = abs(float(self.invSun2000.read(meter_registers.MeterRegister.PowerFactor)))
         # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
         # from the config
         if cosphi < 0.8:
@@ -241,11 +244,11 @@ class ModbusDataCollector2000:
 
         try:
             data = {}
-            data['SN'] = self.invSun2000.read(registers.InverterEquipmentRegister.SN)
-            data['ModelID'] = self.invSun2000.read(registers.InverterEquipmentRegister.ModelID)
-            data['Model'] = str(self.invSun2000.read_formatted(registers.InverterEquipmentRegister.Model)).replace('\0', '')
-            data['NumberOfPVStrings'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfPVStrings)
-            data['NumberOfMPPTrackers'] = self.invSun2000.read(registers.InverterEquipmentRegister.NumberOfMPPTrackers)
+            data['SN'] = self.invSun2000.read(self.this_inverter.SN)
+            data['ModelID'] = self.invSun2000.read(self.this_inverter.ModelID)
+            data['Model'] = str(self.invSun2000.read_formatted(self.this_inverter.Model)).replace('\0', '')
+            data['NumberOfPVStrings'] = self.invSun2000.read(self.this_inverter.NumberOfPVStrings)
+            data['NumberOfMPPTrackers'] = self.invSun2000.read(self.this_inverter.NumberOfMPPTrackers)
             return data
 
         except Exception as e:
@@ -263,17 +266,17 @@ if __name__ == "__main__":
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     settings = HuaweiSUN2000Settings(logger)
-    inverter = inverter.Sun2000(host=settings.get("modbus_host"), port=settings.get("modbus_port"),
-                                modbus_unit=settings.get("modbus_unit"))
-    inverter.connect()
-    if inverter.isConnected():
-
-        attrs = (getattr(registers.InverterEquipmentRegister, name) for name in
-                 dir(registers.InverterEquipmentRegister))
-        datata = dict()
-        for f in attrs:
-            if isinstance(f, registers.InverterEquipmentRegister):
-                datata[f.name] = inverter.read_formatted(f)
-
-        for k, v in datata.items():
+    collector = ModbusDataCollector2000(logger=logger,
+                                        modbus_type=settings.get("modbus_type").strip().upper(),
+                                        host=settings.get("modbus_host"),
+                                        port=settings.get("modbus_port"),
+                                        modbus_unit=settings.get("modbus_unit"),
+                                        pcf_override=settings.get("pcf_override"),
+                                        system_type=settings.get("system_type"))
+    inverter_data = collector.getInverterData()
+    for k, v in inverter_data.items():
+        logger.debug(f"{k}: {v}")
+    if collector.use_meter > 0:
+        meter_data = collector.getMeterData()
+        for k, v in meter_data.items():
             logger.debug(f"{k}: {v}")
