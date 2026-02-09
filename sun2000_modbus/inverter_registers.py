@@ -33,7 +33,64 @@ class InverterRegisterV1(Enum):
 # use a slightly different register map, often referred to as "Solar Inverter Modbus
 # Interface Definitions V2.0".
 class InverterRegisterV2(Enum):
-    pass
+    ModelID = Register(32001, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RO, None)
+    RatedPower = Register(32001, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RO, mappings.RatedPower)
+    # Using RatedPower as MaximumActivePower is a bit of a hack, but it's close enough
+    MaximumActivePower = Register(32001, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RO, mappings.RatedPower)
+    # In the definition, but not added: Output mode
+    SN = Register(32003, 10, datatypes.DataType.STRING, None, None, AccessType.RO, None)
+    SystemTime = Register(32200, 2, datatypes.DataType.UINT32_BE, 1, None, AccessType.RO, None)
+    PV1Voltage = Register(32262, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV1Current = Register(32263, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV2Voltage = Register(32264, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV2Current = Register(32265, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV3Voltage = Register(32266, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV3Current = Register(32267, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV4Voltage = Register(32268, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV4Current = Register(32269, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV5Voltage = Register(32270, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV5Current = Register(32271, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV6Voltage = Register(32272, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV6Current = Register(32273, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    LineVoltageBetweenPhasesAAndB = Register(32274, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    LineVoltageBetweenPhasesBAndC = Register(32275, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    LineVoltageBetweenPhasesCAndA = Register(32276, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    PhaseAVoltage = Register(32277, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    PhaseBVoltage = Register(32278, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    PhaseCVoltage = Register(32279, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
+    PhaseACurrent = Register(32280, 1, datatypes.DataType.UINT16_BE, 10, "A", AccessType.RO, None)
+    PhaseBCurrent = Register(32281, 1, datatypes.DataType.UINT16_BE, 10, "A", AccessType.RO, None)
+    PhaseCCurrent = Register(32282, 1, datatypes.DataType.UINT16_BE, 10, "A", AccessType.RO, None)
+    GridFrequency = Register(32283, 1, datatypes.DataType.UINT16_BE, 100, "Hz", AccessType.RO, None)
+    PowerFactor = Register(32284, 1, datatypes.DataType.INT16_BE, 1000, None, AccessType.RO, None)
+    Efficiency = Register(32285, 1, datatypes.DataType.UINT16_BE, 100, "%", AccessType.RO, None)
+    InternalTemperature = Register(32286, 1, datatypes.DataType.INT16_BE, 10, "°C", AccessType.RO, None)
+    # The actual mapping for the DeviceStatus is a bit different for the V2 models, but it's close enough
+    # that there's no point in creating a separate mapping for it.
+    DeviceStatus = Register(32287, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RO, mappings.DeviceStatus)
+    PeakActivePowerOfCurrentDay = Register(32288, 2, datatypes.DataType.INT32_BE, 1000, "kW", AccessType.RO, None)
+    ActivePower = Register(32290, 2, datatypes.DataType.INT32_BE, 1000, "kW", AccessType.RO, None)
+    ReactivePower = Register(32292, 2, datatypes.DataType.INT32_BE, 1000, "kvar", AccessType.RO, None)
+    InputPower = Register(32294, 2, datatypes.DataType.UINT32_BE, 1000, "kW", AccessType.RO, None)
+    # In the definition, but not added: Current electricity yield collection time
+    # In the definition, but not added: Yield Hour
+    DailyEnergyYield = Register(32300, 2, datatypes.DataType.UINT32_BE, 100, "kWh", AccessType.RO, None)
+    # In the definition, but not added: Yield Month
+    # In the definition, but not added: Yield Year
+    AccumulatedEnergyYield = Register(32306, 2, datatypes.DataType.UINT32_BE, 100, "kWh", AccessType.RO, None)
+    PV7Voltage = Register(32314, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV7Current = Register(32315, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    PV8Voltage = Register(32316, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
+    PV8Current = Register(32317, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    # In the definition, but not added: Locking
+    # In the definition, but not added: Zero voltage ride through
+    # In the definition, but not added: LVRT protection
+    # In the definition, but not added: Islanding protection status
+    # In the definition, but not added: Inverter on-grid
+    InsulationResistance = Register(32323, 1, datatypes.DataType.UINT16_BE, 1000, "MOhm", AccessType.RO, None)
+    StartupTime = Register(32325, 2, datatypes.DataType.UINT32_BE, 1, None, AccessType.RO, None)
+    ShutdownTime = Register(32327, 2, datatypes.DataType.UINT32_BE, 1, None, AccessType.RO, None)
+    GridCode = Register(42072, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RW, None)
 
 
 # Version 3.0 (Latest Standard): Most modern SUN2000-KTL-M1/L1/M2/M3 models follow the

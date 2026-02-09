@@ -244,11 +244,26 @@ class ModbusDataCollector2000:
 
         try:
             data = {}
-            data['SN'] = self.invSun2000.read(self.this_inverter.SN)
-            data['ModelID'] = self.invSun2000.read(self.this_inverter.ModelID)
-            data['Model'] = str(self.invSun2000.read_formatted(self.this_inverter.Model)).replace('\0', '')
-            data['NumberOfPVStrings'] = self.invSun2000.read(self.this_inverter.NumberOfPVStrings)
-            data['NumberOfMPPTrackers'] = self.invSun2000.read(self.this_inverter.NumberOfMPPTrackers)
+            if 'SN' in self.this_inverter.__members__:
+                data['SN'] = self.invSun2000.read(self.this_inverter.SN)
+            else:
+                data['SN'] = "unknown"
+            if 'ModelID' in self.this_inverter.__members__:
+                data['ModelID'] = self.invSun2000.read(self.this_inverter.ModelID)
+            else:
+                data['ModelID'] = 0
+            if 'Model' in self.this_inverter.__members__:
+                data['Model'] = str(self.invSun2000.read_formatted(self.this_inverter.Model)).replace('\0', '')
+            else:
+                data['Model'] = "unknown"
+            if 'NumberOfPVStrings' in self.this_inverter.__members__:
+                data['NumberOfPVStrings'] = self.invSun2000.read(self.this_inverter.NumberOfPVStrings)
+            else:
+                data['NumberOfPVStrings'] = 0
+            if 'NumberOfMPPTrackers' in self.this_inverter.__members__:
+                data['NumberOfMPPTrackers'] = self.invSun2000.read(self.this_inverter.NumberOfMPPTrackers)
+            else:
+                data['NumberOfMPPTrackers'] = 0
             return data
 
         except Exception as e:
@@ -261,22 +276,47 @@ if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
     formatter = logging.Formatter("(%(module)s.%(funcName)s) %(levelname)s - %(message)s")
     logger = logging.getLogger(__name__)
+    logger.propagate = False
     logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     settings = HuaweiSUN2000Settings(logger)
     collector = ModbusDataCollector2000(logger=logger,
-                                        modbus_type=settings.get("modbus_type").strip().upper(),
+                                        modbus_version=settings.get("modbus_version").strip().upper(),
                                         host=settings.get("modbus_host"),
                                         port=settings.get("modbus_port"),
                                         modbus_unit=settings.get("modbus_unit"),
                                         pcf_override=settings.get("pcf_override"),
                                         system_type=settings.get("system_type"))
+    static_data = collector.getStaticData()
+    logger.debug("Static data:")
+    for k, v in static_data.items():
+        logger.debug(f"    {k}: {v}")
+
     inverter_data = collector.getInverterData()
+    logger.debug("Inverter data:")
     for k, v in inverter_data.items():
-        logger.debug(f"{k}: {v}")
-    if collector.use_meter > 0:
+        logger.debug(f"    {k}: {v}")
+
+    if settings.get("use_meter") > 0:
         meter_data = collector.getMeterData()
+        logger.debug("Meter data:")
         for k, v in meter_data.items():
+            logger.debug(f"    {k}: {v}")
+
+    logger.debug("All registers:")
+    _inverter = inverter.Sun2000(logger=logger, host=settings.get("modbus_host"), port=settings.get("modbus_port"),
+                                 modbus_unit=settings.get("modbus_unit"))
+    _inverter.connect()
+    if _inverter.isConnected():
+        this_inverter_registers = inverter_registers.InverterRegister.get(modbus_version=settings.get("modbus_version").strip().upper())
+        attrs = (getattr(this_inverter_registers, name) for name in
+                 dir(this_inverter_registers))
+        datata = dict()
+        for f in attrs:
+            if isinstance(f, this_inverter_registers):
+                datata[f.name] = _inverter.read_formatted(f)
+
+        for k, v in datata.items():
             logger.debug(f"{k}: {v}")

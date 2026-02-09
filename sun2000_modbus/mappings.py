@@ -35,6 +35,21 @@ DeviceStatus = {
     0xA000: 'Standby: no irradiation'
 }
 
+RatedPower = {
+    24: 52500,  # SUN2000-50KTL-C1
+    26: 47000,  # SUN2000-42KTL
+    27: 40000,  # SUN2000-36KTL
+    28: 33300,  # SUN2000-33KTL-JP
+    29: 40000,  # SUN2000-40KTL-JP
+    30: 50500,  # SUN2000-50KTL
+    31: 52500,  # SUN2000-43KTL-IN-C1
+    32: 24700,  # SUN2000-24.7KTL-JP
+    35: 44000,  # SUN2000-40KTL-US
+    36: 36600,  # SUN2000-33KTL-US
+    37: 40000,  # SUN2000-36KTL-US
+    43: 33000   # SUN2000-33KTL-A
+}
+
 RunningStatus = {
     0: 'offline',
     1: 'standby',
