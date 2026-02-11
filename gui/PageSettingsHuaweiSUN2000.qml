@@ -7,10 +7,10 @@ MbPage {
 	property string settings: "com.victronenergy.settings/Settings/HuaweiSUN2000"
 
 	model: VisibleItemModel {
-		MbItemOptions {
-				id: modbusVersion
-				description: qsTr("Modbus Version")
-				bind: Utils.path(settings, "/ModbusVersion")
+		MbEditBox {
+			id: modbusVersion
+			description: qsTr("Modbus Version")
+			item.bind: Utils.path(settings, "/ModbusVersion")
 		}
 
 		MbEditBoxIp {
@@ -44,19 +44,19 @@ MbPage {
 		}
 
 		MbEditBox {
-				id: customName
-				description: qsTr("Custom Name")
-				item.bind: Utils.path(settings, "/CustomName")
+			id: customName
+			description: qsTr("Custom Name")
+			item.bind: Utils.path(settings, "/CustomName")
 		}
 
 		MbItemOptions {
-				description: qsTr("Position")
-				bind: Utils.path(settings, "/Position")
-				possibleValues: [
-						MbOption { description: qsTr("AC Input 1"); value: 0 },
-						MbOption { description: qsTr("AC Input 2"); value: 2 },
-						MbOption { description: qsTr("AC Output"); value: 1 }
-				]
+			description: qsTr("Position")
+			bind: Utils.path(settings, "/Position")
+			possibleValues: [
+				MbOption { description: qsTr("AC Input 1"); value: 0 },
+				MbOption { description: qsTr("AC Input 2"); value: 2 },
+				MbOption { description: qsTr("AC Output"); value: 1 }
+			]
 		}
 
 		MbEditBox {
@@ -81,22 +81,22 @@ MbPage {
 		}
 
 		MbItemOptions {
-				description: qsTr("Use Huawei Meter")
-				bind: Utils.path(settings, "/UseMeter")
-				possibleValues: [
-						MbOption { description: qsTr("No"); value: 0 },
-						MbOption { description: qsTr("Yes, on Grid"); value: 1 },
-						MbOption { description: qsTr("Yes, on AC Load (to be done)"); value: 2 }
-				]
+			description: qsTr("Use Huawei Meter")
+			bind: Utils.path(settings, "/UseMeter")
+			possibleValues: [
+				MbOption { description: qsTr("No"); value: 0 },
+				MbOption { description: qsTr("Yes, on Grid"); value: 1 },
+				MbOption { description: qsTr("Yes, on AC Load (to be done)"); value: 2 }
+			]
 		}
 
 		MbItemOptions {
-				description: qsTr("System Type")
-				bind: Utils.path(settings, "/SystemType")
-				possibleValues: [
-						MbOption { description: qsTr("Single-phase"); value: 0 },
-						MbOption { description: qsTr("Three-phase"); value: 1 }
-				]
+			description: qsTr("System Type")
+			bind: Utils.path(settings, "/SystemType")
+			possibleValues: [
+				MbOption { description: qsTr("Single-phase"); value: 0 },
+				MbOption { description: qsTr("Three-phase"); value: 1 }
+			]
 		}
 	}
 }
