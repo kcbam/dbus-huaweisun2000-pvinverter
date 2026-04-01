@@ -52,6 +52,8 @@ class InverterRegisterV2(Enum):
     PV5Current = Register(32271, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
     PV6Voltage = Register(32272, 1, datatypes.DataType.INT16_BE, 10, "V", AccessType.RO, None)
     PV6Current = Register(32273, 1, datatypes.DataType.INT16_BE, 10, "A", AccessType.RO, None)
+    # LineVoltageBetweenPhasesAAndB is actually a bit of a misnomer as this is onlye correct for three phase systems
+    # For single phase inverters, this is the actual voltage between phase and neutral.
     LineVoltageBetweenPhasesAAndB = Register(32274, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
     LineVoltageBetweenPhasesBAndC = Register(32275, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)
     LineVoltageBetweenPhasesCAndA = Register(32276, 1, datatypes.DataType.UINT16_BE, 10, "V", AccessType.RO, None)

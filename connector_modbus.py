@@ -148,7 +148,6 @@ class ModbusDataCollector2000:
 
         if self.system_type == 0:
             data['/Ac/L1/Power'] = float(data['/Ac/Power'])
-            #data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
         if self.system_type == 1:
             # Three phase inverter
@@ -231,8 +230,6 @@ class ModbusDataCollector2000:
             cosphi = self.pcf_override
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
-
-	#data['/Ac/L1/Power'] = float(data['/Ac/Power'])
 
         if self.system_type == 1:
             # Three phase meter
