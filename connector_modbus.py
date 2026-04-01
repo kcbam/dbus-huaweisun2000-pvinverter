@@ -82,7 +82,7 @@ class ModbusDataCollector2000:
             dbuspath = {
                 '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
                 '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseAVoltage},
+                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.LineVoltageBetweenPhasesAAndB},
                 '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
                 '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
             }
@@ -145,8 +145,10 @@ class ModbusDataCollector2000:
         # There is no Modbus register for the phases
         data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
         data['/Ac/L1/Frequency'] = freq
-        data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(
-            data['/Ac/L1/Current'])
+
+        if self.system_type == 0:
+            data['/Ac/L1/Power'] = float(data['/Ac/Power'])
+            #data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
         if self.system_type == 1:
             # Three phase inverter
@@ -154,6 +156,7 @@ class ModbusDataCollector2000:
             data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
             data['/Ac/L2/Frequency'] = freq
             data['/Ac/L3/Frequency'] = freq
+            data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
             data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
             data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
@@ -228,6 +231,8 @@ class ModbusDataCollector2000:
             cosphi = self.pcf_override
 
         data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
+
+	#data['/Ac/L1/Power'] = float(data['/Ac/Power'])
 
         if self.system_type == 1:
             # Three phase meter
