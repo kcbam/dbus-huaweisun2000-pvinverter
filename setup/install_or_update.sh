@@ -6,10 +6,10 @@ TMP_FILE="/tmp/dbus-huaweisun2000-pvinverter.zip"
 
 if [ "$1" == "dev" ] ; then
     # head of main branch
-    URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip"
+    URL="https://github.com/nooborka/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip"
 else
     # latest release
-    URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/releases/latest/download/project.zip"
+    URL="https://github.com/nooborka/dbus-huaweisun2000-pvinverter/releases/latest/download/project.zip"
 fi
 
 rm -f ${TMP_FILE}
