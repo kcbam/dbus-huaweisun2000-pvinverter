@@ -8,9 +8,15 @@ from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 from . import datatypes
 
+SOCKET_OPTIONS=[
+        (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+        (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 5),
+        (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 2),
+        (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3),
+    ]
 
 class Sun2000:
-    def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0):  # some models need modbus_unit=1
+    def __init__(self, logger, host, port=502, timeout=5, retries=3, socket_options=SOCKET_OPTIONS, wait=2, modbus_unit=0):  # some models need modbus_unit=1
         self.logger = logger
         self.wait = wait
         self.modbus_unit = modbus_unit
