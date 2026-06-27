@@ -30,3 +30,4 @@ class ConfigOverride:
         settings["use_meter"] = 0
         # 0 = Single Phase, 1 = Three Phase
         settings["system_type"] = 0
+        return settings

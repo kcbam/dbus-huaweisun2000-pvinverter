@@ -49,7 +49,16 @@ class HuaweiSUN2000Settings(object):
         else:
             logging.warning("Found override_config.py, adjusting settings accordingly.")
             config_override = ConfigOverride()
-            config_override.adjust_settings(self.settings)
+            self.logger.info("Settings before override:")
+            for k, v in self.settings._settings.items():
+                self.logger.info(f"{k}: {self.settings[k]}")
+            self.settings = config_override.adjust_settings(self.settings)
+            # This is a workaround for the SettingsDevice not picking up the changes
+            # See https://github.com/victronenergy/localsettings/issues/3
+            self.settings = SettingsDevice(bus=self.dbus_conn, supportedSettings=supported_settings, eventCallback=self._handle_changed_setting)
+            self.logger.info("Settings after override:")
+            for k, v in self.settings._settings.items():
+                self.logger.info(f"{k}: {self.settings[k]}")
 
     def _dbusconnection(self):
         return SessionBus() if "DBUS_SESSION_BUS_ADDRESS" in os.environ else SystemBus()
@@ -59,7 +68,7 @@ class HuaweiSUN2000Settings(object):
         self.logger.info("Exiting due to new setting. The service will get restarted and pick up the new setting.")
         # I consider this to be a bit of a hack, but it works for now. If there are config changes, the
         # service exits and gets restarted and thus picks up the new settings values.
-        sys.exit(0)
+        os._exit(1)
 
     def get(self, setting):
         return self.settings[setting]
