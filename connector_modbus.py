@@ -144,14 +144,16 @@ class ModbusDataCollector2000:
             freq = self.invSun2000.read(self.this_inverter.GridFrequency)
 
             # There is no Modbus register for the phases
-            data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
             data['/Ac/L1/Frequency'] = freq
 
             if self.system_type == 0:
+                # Single phase inverter
+                data['/Ac/L1/Energy/Forward'] = round(energy_forward, 2)
                 data['/Ac/L1/Power'] = float(data['/Ac/Power'])
 
             if self.system_type == 1:
                 # Three phase inverter
+                data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
                 data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
                 data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
                 data['/Ac/L2/Frequency'] = freq
