@@ -49,8 +49,8 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000:
-    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0):
-        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20)
+    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):
+        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20, max_retries=max_retries, backoff_in_seconds=backoff_in_seconds, backoff_factor=backoff_factor)
         self.logger = logger
         self.pcf_override = pcf_override
         self.system_type = system_type
@@ -62,104 +62,109 @@ class ModbusDataCollector2000:
             print("Connection error Modbus TCP")
             return None
 
-        data = {}
+        try:
+            data = {}
 
-        if self.system_type == 1:
-            # Three phase inverter
-            dbuspath = {
-                '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseAVoltage},
-                '/Ac/L2/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseBCurrent},
-                '/Ac/L2/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseBVoltage},
-                '/Ac/L3/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseCCurrent},
-                '/Ac/L3/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseCVoltage},
-                '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
-                '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
-            }
-        else:
-            # Single phase inverter
-            dbuspath = {
-                '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.LineVoltageBetweenPhasesAAndB},
-                '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
-                '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
-            }
+            if self.system_type == 1:
+                # Three phase inverter
+                dbuspath = {
+                    '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
+                    '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
+                    '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseAVoltage},
+                    '/Ac/L2/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseBCurrent},
+                    '/Ac/L2/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseBVoltage},
+                    '/Ac/L3/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseCCurrent},
+                    '/Ac/L3/Voltage': {'initial': 0, "sun2000": self.this_inverter.PhaseCVoltage},
+                    '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
+                    '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
+                }
+            else:
+                # Single phase inverter
+                dbuspath = {
+                    '/Ac/Power': {'initial': 0, "sun2000": self.this_inverter.ActivePower},
+                    '/Ac/L1/Current': {'initial': 0, "sun2000": self.this_inverter.PhaseACurrent},
+                    '/Ac/L1/Voltage': {'initial': 0, "sun2000": self.this_inverter.LineVoltageBetweenPhasesAAndB},
+                    '/Dc/Power': {'initial': 0, "sun2000": self.this_inverter.InputPower},
+                    '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
+                }
 
-        for k, v in dbuspath.items():
-            s = v.get("sun2000")
-            data[k] = self.invSun2000.read(s)
+            for k, v in dbuspath.items():
+                s = v.get("sun2000")
+                data[k] = self.invSun2000.read(s)
 
-        data['/Status'] = self.invSun2000.read_formatted(self.this_inverter.DeviceStatus)
+            data['/Status'] = self.invSun2000.read_formatted(self.this_inverter.DeviceStatus)
 
-        # Matching the DeviceStatus code mapping to the
-        # codes for 'pvinverter' from the Victron dbus manual
-        # https://github.com/victronenergy/venus/wiki/dbus#pv-inverters
-        # 0=Startup 0; 1=Startup 1; 2=Startup 2; 3=Startup 3;
-        # 4=Startup 4; 5=Startup 5; 6=Startup 6; 7=Running;
-        # 8=Standby; 9=Boot loading; 10=Error
-        match data['/Status']:
-            case "Starting":
-                data['/StatusCode'] = 0
-            case "On-grid":
-                data['/StatusCode'] = 7
-            case "Grid connection: power limited":
-                data['/StatusCode'] = 7
-            case "Grid connection: self-derating":
-                data['/StatusCode'] = 7
-            case "Shutdown: fault":
-                data['/StatusCode'] = 10
-            case "Shutdown: command":
-                data['/StatusCode'] = 10
-            case "Shutdown: OVGR":
-                data['/StatusCode'] = 10
-            case "Shutdown: communication disconnected":
-                data['/StatusCode'] = 10
-            case "Shutdown: power limited":
-                data['/StatusCode'] = 10
-            case "Shutdown: manual startup required":
-                data['/StatusCode'] = 10
-            case "Shutdown: DC switches disconnected":
-                data['/StatusCode'] = 10
-            case "Shutdown: rapid cutoff":
-                data['/StatusCode'] = 10
-            case "Shutdown: input underpowered":
-                data['/StatusCode'] = 10
-            case "Standby: no irradiation":
-                data['/StatusCode'] = 8
-            case _:
-                data['/StatusCode'] = 7  # Let's put the default to "running" (7)
+            # Matching the DeviceStatus code mapping to the
+            # codes for 'pvinverter' from the Victron dbus manual
+            # https://github.com/victronenergy/venus/wiki/dbus#pv-inverters
+            # 0=Startup 0; 1=Startup 1; 2=Startup 2; 3=Startup 3;
+            # 4=Startup 4; 5=Startup 5; 6=Startup 6; 7=Running;
+            # 8=Standby; 9=Boot loading; 10=Error
+            match data['/Status']:
+                case "Starting":
+                    data['/StatusCode'] = 0
+                case "On-grid":
+                    data['/StatusCode'] = 7
+                case "Grid connection: power limited":
+                    data['/StatusCode'] = 7
+                case "Grid connection: self-derating":
+                    data['/StatusCode'] = 7
+                case "Shutdown: fault":
+                    data['/StatusCode'] = 10
+                case "Shutdown: command":
+                    data['/StatusCode'] = 10
+                case "Shutdown: OVGR":
+                    data['/StatusCode'] = 10
+                case "Shutdown: communication disconnected":
+                    data['/StatusCode'] = 10
+                case "Shutdown: power limited":
+                    data['/StatusCode'] = 10
+                case "Shutdown: manual startup required":
+                    data['/StatusCode'] = 10
+                case "Shutdown: DC switches disconnected":
+                    data['/StatusCode'] = 10
+                case "Shutdown: rapid cutoff":
+                    data['/StatusCode'] = 10
+                case "Shutdown: input underpowered":
+                    data['/StatusCode'] = 10
+                case "Standby: no irradiation":
+                    data['/StatusCode'] = 8
+                case _:
+                    data['/StatusCode'] = 7  # Let's put the default to "running" (7)
 
-        energy_forward = self.invSun2000.read(self.this_inverter.AccumulatedEnergyYield)
-        data['/Ac/Energy/Forward'] = energy_forward
+            energy_forward = self.invSun2000.read(self.this_inverter.AccumulatedEnergyYield)
+            data['/Ac/Energy/Forward'] = energy_forward
 
-        cosphi = float(self.invSun2000.read((self.this_inverter.PowerFactor)))
-        # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
-        # from the config
-        if cosphi < 0.8:
-            cosphi = self.pcf_override
+            cosphi = float(self.invSun2000.read((self.this_inverter.PowerFactor)))
+            # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
+            # from the config
+            if cosphi < 0.8:
+                cosphi = self.pcf_override
 
-        freq = self.invSun2000.read(self.this_inverter.GridFrequency)
+            freq = self.invSun2000.read(self.this_inverter.GridFrequency)
 
-        # There is no Modbus register for the phases
-        data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
-        data['/Ac/L1/Frequency'] = freq
+            # There is no Modbus register for the phases
+            data['/Ac/L1/Energy/Forward'] = round(energy_forward / 3.0, 2)
+            data['/Ac/L1/Frequency'] = freq
 
-        if self.system_type == 0:
-            data['/Ac/L1/Power'] = float(data['/Ac/Power'])
+            if self.system_type == 0:
+                data['/Ac/L1/Power'] = float(data['/Ac/Power'])
 
-        if self.system_type == 1:
-            # Three phase inverter
-            data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
-            data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
-            data['/Ac/L2/Frequency'] = freq
-            data['/Ac/L3/Frequency'] = freq
-            data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
-            data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
-            data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
+            if self.system_type == 1:
+                # Three phase inverter
+                data['/Ac/L2/Energy/Forward'] = round(energy_forward / 3.0, 2)
+                data['/Ac/L3/Energy/Forward'] = round(energy_forward / 3.0, 2)
+                data['/Ac/L2/Frequency'] = freq
+                data['/Ac/L3/Frequency'] = freq
+                data['/Ac/L1/Power'] = cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
+                data['/Ac/L2/Power'] = cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+                data['/Ac/L3/Power'] = cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
-        return data
+            return data
+
+        except Exception as e:
+            self.logger.error("Error getting inverter data via Modbus TCP: " + str(e))
+            return None
 
     def getMeterData(self):
         # the connect() method internally checks whether there's already a connection
@@ -193,50 +198,55 @@ class ModbusDataCollector2000:
         /IsGenericEnergyMeter  <- When an energy meter masquarades as a genset or acload, this is set to 1.
         """
 
-        data = {}
+        try:
+            data = {}
 
-        if self.system_type == 1:
-            # Three phase meter
-            dbuspath = {
-                '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
-                '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
-                '/Ac/L2/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseCurrent},
-                '/Ac/L2/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseVoltage},
-                '/Ac/L3/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseCurrent},
-                '/Ac/L3/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseVoltage},
-            }
-        else:
-            # Single phase meter
-            dbuspath = {
-                '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
-                '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
-                '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
-                '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
-            }
+            if self.system_type == 1:
+                # Three phase meter
+                dbuspath = {
+                    '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
+                    '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
+                    '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
+                    '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
+                    '/Ac/L2/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseCurrent},
+                    '/Ac/L2/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.BPhaseVoltage},
+                    '/Ac/L3/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseCurrent},
+                    '/Ac/L3/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.CPhaseVoltage},
+                }
+            else:
+                # Single phase meter
+                dbuspath = {
+                    '/DeviceType': {'initial': 0, "sun2000": meter_registers.MeterRegister.MeterType},
+                    '/Ac/Power': {'initial': 0, "sun2000": meter_registers.MeterRegister.ActivePower},
+                    '/Ac/L1/Current': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseCurrent},
+                    '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
+                }
 
-        data['/Ac/Energy/Forward'] = self.invSun2000.read(meter_registers.MeterRegister.ActivePower) / 1000
-        data['/Ac/Energy/Reverse'] = self.invSun2000.read(meter_registers.MeterRegister.ReverseActivePower) / 1000
+            data['/Ac/Energy/Forward'] = self.invSun2000.read(meter_registers.MeterRegister.ActivePower) / 1000
+            data['/Ac/Energy/Reverse'] = self.invSun2000.read(meter_registers.MeterRegister.ReverseActivePower) / 1000
 
-        for k, v in dbuspath.items():
-            s = v.get("sun2000")
-            data[k] = self.invSun2000.read(s)
+            for k, v in dbuspath.items():
+                s = v.get("sun2000")
+                data[k] = self.invSun2000.read(s)
 
-        cosphi = abs(float(self.invSun2000.read(meter_registers.MeterRegister.PowerFactor)))
-        # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
-        # from the config
-        if cosphi < 0.8:
-            cosphi = self.pcf_override
+            cosphi = abs(float(self.invSun2000.read(meter_registers.MeterRegister.PowerFactor)))
+            # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
+            # from the config
+            if cosphi < 0.8:
+                cosphi = self.pcf_override
 
-        data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
+            data['/Ac/L1/Power'] = -1 * cosphi * float(data['/Ac/L1/Voltage']) * float(data['/Ac/L1/Current'])
 
-        if self.system_type == 1:
-            # Three phase meter
-            data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
-            data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
+            if self.system_type == 1:
+                # Three phase meter
+                data['/Ac/L2/Power'] = -1 * cosphi * float(data['/Ac/L2/Voltage']) * float(data['/Ac/L2/Current'])
+                data['/Ac/L3/Power'] = -1 * cosphi * float(data['/Ac/L3/Voltage']) * float(data['/Ac/L3/Current'])
 
-        return data
+            return data
+
+        except Exception as e:
+            self.logger.error("Error getting meter data via Modbus TCP: " + str(e))
+            return None
 
     def getStaticData(self):
         # The connect() method internally checks whether there's already a connection
@@ -290,7 +300,10 @@ if __name__ == "__main__":
                                         port=settings.get("modbus_port"),
                                         modbus_unit=settings.get("modbus_unit"),
                                         pcf_override=settings.get("pcf_override"),
-                                        system_type=settings.get("system_type"))
+                                        system_type=settings.get("system_type"),
+                                        max_retries=settings.get("max_retries"),
+                                        backoff_in_seconds=settings.get("backoff_in_seconds"),
+                                        backoff_factor=settings.get("backoff_factor"))
     static_data = collector.getStaticData()
     logger.debug("Static data:")
     for k, v in static_data.items():

@@ -10,10 +10,13 @@ from . import datatypes
 
 
 class Sun2000:
-    def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0):  # some models need modbus_unit=1
+    def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):  # some models need modbus_unit=1
         self.logger = logger
         self.wait = wait
         self.modbus_unit = modbus_unit
+        self.max_retries = max_retries
+        self.backoff_in_seconds = backoff_in_seconds
+        self.backoff_factor = backoff_factor
         self.inverter = ModbusTcpClient(host, port, timeout=timeout)
 
     def connect(self):
@@ -45,19 +48,36 @@ class Sun2000:
         return self.isConnected()
 
     def read_raw_value(self, register):
-        if not self.isConnected():
-            raise ValueError('Inverter is not connected')
+        retries = 0
+        backoff = self.backoff_in_seconds
+        while True:
+            if not self.isConnected():
+                self.connect()
 
-        try:
-            register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
-            if isinstance(register_value, ModbusIOException):
-                self.logger.error("Inverter unit did not respond")
-                raise register_value
-        except ConnectionException:
-            self.logger.error("A connection error occurred")
-            raise
+            if not self.isConnected():
+                if retries >= self.max_retries:
+                    raise ValueError('Inverter is not connected')
+                self.logger.warning(f"Inverter not connected, retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
 
-        return datatypes.decode(register_value.encode()[1:], register.value.data_type)
+            try:
+                register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
+                if isinstance(register_value, ModbusIOException):
+                    raise register_value
+            except (ConnectionException, ModbusIOException) as e:
+                self.logger.error(f"Connection error occurred: {e}")
+                if retries >= self.max_retries:
+                    raise
+                self.logger.warning(f"Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
+
+            return datatypes.decode(register_value.encode()[1:], register.value.data_type)
 
     def read(self, register):
         raw_value = self.read_raw_value(register)
@@ -88,18 +108,36 @@ class Sun2000:
         if end_address != 0 and end_address <= start_address:
             raise ValueError("end_address must be greater than start_address")
 
-        if not self.isConnected():
-            raise ValueError('Inverter is not connected')
-
         if end_address != 0:
             quantity = end_address - start_address + 1
-        try:
-            register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
-            if isinstance(register_range_value, ModbusIOException):
-                self.logger.error("Inverter unit did not respond")
-                raise register_range_value
-        except ConnectionException:
-            self.logger.error("A connection error occurred")
-            raise
 
-        return datatypes.decode(register_range_value.encode()[1:], datatypes.DataType.MULTIDATA)
+        retries = 0
+        backoff = self.backoff_in_seconds
+        while True:
+            if not self.isConnected():
+                self.connect()
+
+            if not self.isConnected():
+                if retries >= self.max_retries:
+                    raise ValueError('Inverter is not connected')
+                self.logger.warning(f"Inverter not connected, retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
+
+            try:
+                register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
+                if isinstance(register_range_value, ModbusIOException):
+                    raise register_range_value
+            except (ConnectionException, ModbusIOException) as e:
+                self.logger.error(f"Connection error occurred: {e}")
+                if retries >= self.max_retries:
+                    raise
+                self.logger.warning(f"Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
+
+            return datatypes.decode(register_range_value.encode()[1:], datatypes.DataType.MULTIDATA)

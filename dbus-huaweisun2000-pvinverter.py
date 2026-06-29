@@ -212,7 +212,10 @@ def main():
                                      port=settings.get("modbus_port"),
                                      modbus_unit=settings.get("modbus_unit"),
                                      pcf_override=settings.get("pcf_override"),
-                                     system_type=settings.get("system_type"))
+                                     system_type=settings.get("system_type"),
+                                     max_retries=settings.get("max_retries"),
+                                     backoff_in_seconds=settings.get("backoff_in_seconds"),
+                                     backoff_factor=settings.get("backoff_factor"))
 
     while True:
         staticdata = modbus.getStaticData()

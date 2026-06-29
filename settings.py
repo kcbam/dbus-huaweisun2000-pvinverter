@@ -39,6 +39,9 @@ class HuaweiSUN2000Settings(object):
             "vrm_instance": ["/Settings/Devices/HuaweiSUN2000/ClassAndVrmInstance", "pvinverter:1", "", "", 0],
             "use_meter": ["/Settings/HuaweiSUN2000/UseMeter", 0, 0, 2, 0],
             "system_type": ["/Settings/HuaweiSUN2000/SystemType", 0, 0, 1, 0],
+            "max_retries": ["/Settings/HuaweiSUN2000/MaxRetries", 3, 0, 100, 0],
+            "backoff_in_seconds": ["/Settings/HuaweiSUN2000/BackoffInSeconds", 1, 0, 100, 0],
+            "backoff_factor": ["/Settings/HuaweiSUN2000/BackoffFactor", 2.0, 1.0, 10.0, 0],
         }
         self.dbus_conn = self._dbusconnection()
         self.settings = SettingsDevice(bus=self.dbus_conn, supportedSettings=supported_settings, eventCallback=self._handle_changed_setting)
