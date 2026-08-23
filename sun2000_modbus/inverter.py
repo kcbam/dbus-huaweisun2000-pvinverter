@@ -8,6 +8,12 @@ from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 from . import datatypes
 
+# A Modbus response can carry at most 125 registers.
+MAX_REGISTERS_PER_REQUEST = 125
+# Reading a few registers we don't need is much cheaper than sending a second
+# request, so we bridge gaps up to this size instead of splitting the block.
+MAX_GAP_IN_REGISTERS = 16
+
 
 class Sun2000:
     def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):  # some models need modbus_unit=1
@@ -47,6 +53,28 @@ class Sun2000:
     def connected(self):
         return self.isConnected()
 
+    @staticmethod
+    def _payload(response):
+        """Strip the leading byte count from a read response."""
+        return response.encode()[1:]
+
+    def _check_response(self, response, start_address, quantity):
+        """Reject anything that is not a complete, successful read response.
+
+        A Modbus exception response (illegal address, device busy, ...) is a regular
+        object here, not a raised error. Its payload is empty, and an empty byte string
+        decodes to 0. Without this check a failed read silently looks like a reading of
+        zero, which for a block read would zero every register in the block at once.
+        """
+        if isinstance(response, ModbusIOException):
+            raise response
+        if response is None or response.isError():
+            raise ModbusIOException(f"Inverter returned an error for registers {start_address}..{start_address + quantity - 1}: {response}")
+        expected = quantity * 2
+        payload = self._payload(response)
+        if len(payload) != expected:
+            raise ModbusIOException(f"Inverter returned {len(payload)} bytes for registers {start_address}..{start_address + quantity - 1}, expected {expected}")
+
     def read_raw_value(self, register):
         retries = 0
         backoff = self.backoff_in_seconds
@@ -65,8 +93,7 @@ class Sun2000:
 
             try:
                 register_value = self.inverter.read_holding_registers(register.value.address, register.value.quantity, unit=self.modbus_unit)
-                if isinstance(register_value, ModbusIOException):
-                    raise register_value
+                self._check_response(register_value, register.value.address, register.value.quantity)
             except (ConnectionException, ModbusIOException) as e:
                 self.logger.error(f"Connection error occurred: {e}")
                 if retries >= self.max_retries:
@@ -77,7 +104,7 @@ class Sun2000:
                 backoff *= self.backoff_factor
                 continue
 
-            return datatypes.decode(register_value.encode()[1:], register.value.data_type)
+            return datatypes.decode(self._payload(register_value), register.value.data_type)
 
     def read(self, register):
         raw_value = self.read_raw_value(register)
@@ -88,8 +115,10 @@ class Sun2000:
             return raw_value / register.value.gain
 
     def read_formatted(self, register, use_locale=False):
-        value = self.read(register)
+        return self.format_value(register, self.read(register), use_locale)
 
+    def format_value(self, register, value, use_locale=False):
+        """Apply unit or mapping to an already decoded register value."""
         if register.value.unit is not None:
             if use_locale:
                 return f'{value:n} {register.value.unit}'
@@ -99,6 +128,63 @@ class Sun2000:
             return register.value.mapping.get(value, f'undefined ({value})')
         else:
             return value
+
+    def read_block(self, registers):
+        """Read a group of nearby registers with a single Modbus request.
+
+        The inverter needs roughly the same time to answer a request no matter how
+        many registers it covers, so one block read is far quicker than reading every
+        register on its own. Returns a dict of register -> value, gain applied.
+        """
+        registers = list(registers)
+        start = min(r.value.address for r in registers)
+        end = max(r.value.address + r.value.quantity for r in registers)
+        raw = self.read_range(start, quantity=end - start)
+
+        values = {}
+        for register in registers:
+            offset = (register.value.address - start) * 2
+            chunk = raw[offset:offset + register.value.quantity * 2]
+            value = datatypes.decode(chunk, register.value.data_type)
+            values[register] = value if register.value.gain is None else value / register.value.gain
+        return values
+
+    def read_registers(self, registers):
+        """Read any set of registers with as few Modbus requests as possible.
+
+        A block covers a few registers the caller did not ask for. Should a model not
+        support all of them, the inverter rejects the whole request. In that case this
+        falls back to reading the group register by register, so such a model keeps
+        working at the old speed instead of losing all of its values at once.
+        """
+        values = {}
+        for group in self._group_registers(registers):
+            try:
+                values.update(self.read_block(group))
+            except (ConnectionException, ModbusIOException) as e:
+                first = group[0].value.address
+                last = group[-1].value.address + group[-1].value.quantity - 1
+                self.logger.warning(f"Block read of registers {first}..{last} failed ({e}), falling back to single reads")
+                for register in group:
+                    values[register] = self.read(register)
+        return values
+
+    @staticmethod
+    def _group_registers(registers):
+        """Sort registers by address and cut them into blocks a single request can carry."""
+        ordered = sorted(set(registers), key=lambda r: r.value.address)
+        group = []
+        for register in ordered:
+            if group:
+                span = register.value.address + register.value.quantity - group[0].value.address
+                previous = group[-1]
+                gap = register.value.address - (previous.value.address + previous.value.quantity)
+                if span > MAX_REGISTERS_PER_REQUEST or gap > MAX_GAP_IN_REGISTERS:
+                    yield group
+                    group = []
+            group.append(register)
+        if group:
+            yield group
 
     def read_range(self, start_address, quantity=0, end_address=0):
         if quantity == 0 and end_address == 0:
@@ -128,8 +214,7 @@ class Sun2000:
 
             try:
                 register_range_value = self.inverter.read_holding_registers(start_address, quantity, unit=self.modbus_unit)
-                if isinstance(register_range_value, ModbusIOException):
-                    raise register_range_value
+                self._check_response(register_range_value, start_address, quantity)
             except (ConnectionException, ModbusIOException) as e:
                 self.logger.error(f"Connection error occurred: {e}")
                 if retries >= self.max_retries:
@@ -140,4 +225,4 @@ class Sun2000:
                 backoff *= self.backoff_factor
                 continue
 
-            return datatypes.decode(register_range_value.encode()[1:], datatypes.DataType.MULTIDATA)
+            return datatypes.decode(self._payload(register_range_value), datatypes.DataType.MULTIDATA)
