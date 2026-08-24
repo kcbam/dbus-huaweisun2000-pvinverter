@@ -8,6 +8,15 @@ from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 from . import datatypes
 
+
+class RequestRejected(ModbusIOException):
+    """The device answered, but refused the request, for instance illegal data address.
+
+    Kept apart from a broken connection on purpose: a refusal says something about the
+    request and can be worked around by asking differently, a broken connection cannot.
+    """
+
+
 # A Modbus response can carry at most 125 registers.
 MAX_REGISTERS_PER_REQUEST = 125
 # Reading a few registers we don't need is much cheaper than sending a second
@@ -69,11 +78,11 @@ class Sun2000:
         if isinstance(response, ModbusIOException):
             raise response
         if response is None or response.isError():
-            raise ModbusIOException(f"Inverter returned an error for registers {start_address}..{start_address + quantity - 1}: {response}")
+            raise RequestRejected(f"Inverter refused registers {start_address}..{start_address + quantity - 1}: {response}")
         expected = quantity * 2
         payload = self._payload(response)
         if len(payload) != expected:
-            raise ModbusIOException(f"Inverter returned {len(payload)} bytes for registers {start_address}..{start_address + quantity - 1}, expected {expected}")
+            raise RequestRejected(f"Inverter returned {len(payload)} bytes for registers {start_address}..{start_address + quantity - 1}, expected {expected}")
 
     def read_raw_value(self, register):
         retries = 0
@@ -153,15 +162,19 @@ class Sun2000:
         """Read any set of registers with as few Modbus requests as possible.
 
         A block covers a few registers the caller did not ask for. Should a model not
-        support all of them, the inverter rejects the whole request. In that case this
+        support all of them, the inverter refuses the whole request. In that case this
         falls back to reading the group register by register, so such a model keeps
         working at the old speed instead of losing all of its values at once.
+
+        Only a refusal triggers that fallback. When the connection itself is in trouble,
+        replacing one request by twelve would put more load on a device that is already
+        struggling, so such an error is passed on and the caller decides.
         """
         values = {}
         for group in self._group_registers(registers):
             try:
                 values.update(self.read_block(group))
-            except (ConnectionException, ModbusIOException) as e:
+            except RequestRejected as e:
                 first = group[0].value.address
                 last = group[-1].value.address + group[-1].value.quantity - 1
                 self.logger.warning(f"Block read of registers {first}..{last} failed ({e}), falling back to single reads")

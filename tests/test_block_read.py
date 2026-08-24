@@ -10,7 +10,7 @@ import struct
 from enum import Enum
 
 import pytest
-from pymodbus.exceptions import ModbusIOException
+from pymodbus.exceptions import ConnectionException, ModbusIOException
 
 from sun2000_modbus import datatypes
 from sun2000_modbus import inverter
@@ -182,6 +182,20 @@ def test_a_truncated_answer_raises_instead_of_decoding_short():
 
     with pytest.raises(ModbusIOException):
         sun2000.read_range(32064, quantity=44)
+
+
+def test_a_broken_connection_is_passed_on_instead_of_flooding_the_device():
+    """Twelve single reads would only add load to a device that already cannot answer."""
+    def break_connection(address, quantity):
+        raise ConnectionException("socket closed")
+
+    sun2000 = make_inverter()
+    sun2000.inverter = ClientStub(break_connection)
+
+    with pytest.raises(ConnectionException):
+        sun2000.read_registers([SampleRegister.UINT16_WITH_GAIN, SampleRegister.INT32_SIGNED])
+
+    assert len(sun2000.inverter.calls) == 1, "only the block read is attempted"
 
 
 def test_a_model_that_rejects_block_reads_still_gets_all_its_values():
