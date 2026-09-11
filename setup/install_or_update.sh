@@ -7,9 +7,11 @@ TMP_FILE="/tmp/dbus-huaweisun2000-pvinverter.zip"
 if [ "$1" == "dev" ] ; then
     # head of main branch
     URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip"
-else
+elif [ -z "$1" ]; then
     # latest release
     URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/releases/latest/download/project.zip"
+else
+    URL="${1}"
 fi
 
 rm -f ${TMP_FILE}
@@ -17,11 +19,16 @@ rm -f ${TMP_FILE}
 mkdir -p /data/dbus-huaweisun2000-pvinverter
 
 wget -q -O ${TMP_FILE} ${URL}
-if [ "$1" == "dev" ] ; then
+if [ "$1" == "dev" ] || [ -n "$1" ]; then
     unzip -o ${TMP_FILE} -d /tmp
-    rm -rf /tmp/dbus-huaweisun2000-pvinverter-main/.git*
-    cp -a /tmp/dbus-huaweisun2000-pvinverter-main/* /data/dbus-huaweisun2000-pvinverter/
-    rm -rf /tmp/dbus-huaweisun2000-pvinverter-main
+    ZIPDIR="`unzip -l ${TMP_FILE} | grep dbus-huaweisun2000 | head -n 2 | tail -n 1 | awk '{ print $4 }'`"
+    if [ ! -d /tmp/${ZIPDIR} ]; then
+        echo "ERROR: Expected the zipfile to unzip into /tmp/${ZIPDIR} but it seems to not be the case. Please check."
+        exit 1
+    fi
+    rm -rf /tmp/${ZIPDIR}/.git*
+    cp -a /tmp/${ZIPDIR}/* /data/dbus-huaweisun2000-pvinverter/
+    rm -rf /tmp/${ZIPDIR}
 else
     unzip -o ${TMP_FILE} -d /data/dbus-huaweisun2000-pvinverter
 fi
