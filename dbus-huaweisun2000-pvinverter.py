@@ -218,7 +218,8 @@ def main():
                                      system_type=settings.get("system_type"),
                                      max_retries=settings.get("max_retries"),
                                      backoff_in_seconds=settings.get("backoff_in_seconds"),
-                                     backoff_factor=settings.get("backoff_factor"))
+                                     backoff_factor=settings.get("backoff_factor"),
+                                     block_read=bool(settings.get("block_read")))
 
     while True:
         staticdata = modbus.getStaticData()

@@ -98,5 +98,10 @@ MbPage {
 				MbOption { description: qsTr("Three-phase"); value: 1 }
 			]
 		}
+
+		MbSwitch {
+			name: qsTr("Read registers in blocks")
+			bind: Utils.path(settings, "/BlockRead")
+		}
 	}
 }

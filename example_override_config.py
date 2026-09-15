@@ -30,4 +30,7 @@ class ConfigOverride:
         settings["use_meter"] = 0
         # 0 = Single Phase, 1 = Three Phase
         settings["system_type"] = 0
+        # 1 = read the registers of a cycle with as few Modbus requests as possible (fast),
+        # 0 = one request per register. Only needed if your model misbehaves on block reads.
+        settings["block_read"] = 1
         return settings

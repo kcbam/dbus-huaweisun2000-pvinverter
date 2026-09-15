@@ -49,8 +49,8 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000:
-    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):
-        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20, max_retries=max_retries, backoff_in_seconds=backoff_in_seconds, backoff_factor=backoff_factor)
+    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0, block_read=True):
+        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20, max_retries=max_retries, backoff_in_seconds=backoff_in_seconds, backoff_factor=backoff_factor, block_read=block_read)
         self.logger = logger
         self.pcf_override = pcf_override
         self.system_type = system_type
@@ -338,7 +338,8 @@ if __name__ == "__main__":
                                         system_type=settings.get("system_type"),
                                         max_retries=settings.get("max_retries"),
                                         backoff_in_seconds=settings.get("backoff_in_seconds"),
-                                        backoff_factor=settings.get("backoff_factor"))
+                                        backoff_factor=settings.get("backoff_factor"),
+                                        block_read=bool(settings.get("block_read")))
     static_data = collector.getStaticData()
     logger.debug("Static data:")
     for k, v in static_data.items():

@@ -42,6 +42,7 @@ class HuaweiSUN2000Settings(object):
             "max_retries": ["/Settings/HuaweiSUN2000/MaxRetries", 3, 0, 100, 0],
             "backoff_in_seconds": ["/Settings/HuaweiSUN2000/BackoffInSeconds", 1, 0, 100, 0],
             "backoff_factor": ["/Settings/HuaweiSUN2000/BackoffFactor", 2.0, 1.0, 10.0, 0],
+            "block_read": ["/Settings/HuaweiSUN2000/BlockRead", 1, 0, 1, 0],
         }
         self.dbus_conn = self._dbusconnection()
         self.settings = SettingsDevice(bus=self.dbus_conn, supportedSettings=supported_settings, eventCallback=self._handle_changed_setting)

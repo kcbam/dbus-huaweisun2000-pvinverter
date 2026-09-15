@@ -37,6 +37,8 @@ def make_inverter():
     instance.max_retries = 0
     instance.backoff_in_seconds = 0
     instance.backoff_factor = 1.0
+    instance.block_read = True
+    instance.rejected_groups = set()
     return instance
 
 
@@ -151,11 +153,14 @@ class ClientStub:
 class ExceptionAnswer:
     """What pymodbus returns when the inverter rejects a request: not an exception."""
 
+    def __init__(self, exception_code=2):  # 2 = illegal data address
+        self.exception_code = exception_code
+
     def isError(self):
         return True
 
     def encode(self):
-        return b"\x02"
+        return bytes([self.exception_code])
 
 
 def full_answer(address, quantity):
@@ -213,3 +218,52 @@ def test_a_model_that_rejects_block_reads_still_gets_all_its_values():
     assert sun2000.inverter.calls[0][1] > 2, "the block read is attempted first"
     assert len(sun2000.inverter.calls) == 1 + len(registers), "then every register on its own"
     assert any("falling back" in message for message in sun2000.logger.messages)
+
+
+def test_a_rejected_group_is_read_singly_from_then_on_without_repeating_the_warning():
+    """Retrying the block every cycle would cost a wasted request and a log line per cycle."""
+    def reject_ranges(address, quantity):
+        return ExceptionAnswer() if quantity > 2 else full_answer(address, quantity)
+
+    sun2000 = make_inverter()
+    sun2000.inverter = ClientStub(reject_ranges)
+    registers = [SampleRegister.UINT16_WITH_GAIN, SampleRegister.INT32_SIGNED, SampleRegister.WITHOUT_GAIN]
+
+    sun2000.read_registers(registers)
+    calls_after_first_cycle = len(sun2000.inverter.calls)
+    values = sun2000.read_registers(registers)
+
+    assert set(values) == set(registers)
+    assert len(sun2000.inverter.calls) == calls_after_first_cycle + len(registers), "no block read is tried again"
+    assert sum("falling back" in message for message in sun2000.logger.messages) == 1
+
+
+def test_block_reads_can_be_switched_off():
+    sun2000 = make_inverter()
+    sun2000.block_read = False
+    sun2000.inverter = ClientStub(full_answer)
+    registers = [SampleRegister.UINT16_WITH_GAIN, SampleRegister.INT32_SIGNED]
+
+    values = sun2000.read_registers(registers)
+
+    assert set(values) == set(registers)
+    assert [quantity for _, quantity in sun2000.inverter.calls] == [1, 2], "one request per register"
+    assert sun2000.logger.messages == []
+
+
+def test_a_busy_device_does_not_get_its_block_reads_switched_off():
+    """Device busy (exception code 6) says nothing about the registers, so the block is tried again next cycle."""
+    def busy_once(address, quantity):
+        if quantity > 2 and not sun2000.inverter.calls[:-1]:
+            return ExceptionAnswer(exception_code=6)
+        return full_answer(address, quantity)
+
+    sun2000 = make_inverter()
+    sun2000.inverter = ClientStub(busy_once)
+    registers = [SampleRegister.UINT16_WITH_GAIN, SampleRegister.INT32_SIGNED, SampleRegister.WITHOUT_GAIN]
+
+    sun2000.read_registers(registers)
+    calls_after_first_cycle = len(sun2000.inverter.calls)
+    sun2000.read_registers(registers)
+
+    assert len(sun2000.inverter.calls) == calls_after_first_cycle + 1, "the second cycle is a single block read again"

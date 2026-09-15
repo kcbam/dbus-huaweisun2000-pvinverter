@@ -17,6 +17,17 @@ class RequestRejected(ModbusIOException):
     """
 
 
+class UnsupportedRequest(RequestRejected):
+    """The device refused the request for good: illegal function, address or value.
+
+    Unlike a busy device or a truncated answer, asking again will not help.
+    """
+
+
+# Modbus exception codes 1..3 say the request itself is wrong for this device.
+PERMANENT_EXCEPTION_CODES = (1, 2, 3)
+
+
 # A Modbus response can carry at most 125 registers.
 MAX_REGISTERS_PER_REQUEST = 125
 # Reading a few registers we don't need is much cheaper than sending a second
@@ -25,8 +36,13 @@ MAX_GAP_IN_REGISTERS = 16
 
 
 class Sun2000:
-    def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):  # some models need modbus_unit=1
+    def __init__(self, logger, host, port=502, timeout=5, wait=2, modbus_unit=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0, block_read=True):  # some models need modbus_unit=1
         self.logger = logger
+        self.block_read = block_read
+        # Groups the device has refused as a block. They are read register by register
+        # from then on, so a model that cannot cope with block reads does not pay for a
+        # rejected request and a warning in every cycle.
+        self.rejected_groups = set()
         self.wait = wait
         self.modbus_unit = modbus_unit
         self.max_retries = max_retries
@@ -78,7 +94,8 @@ class Sun2000:
         if isinstance(response, ModbusIOException):
             raise response
         if response is None or response.isError():
-            raise RequestRejected(f"Inverter refused registers {start_address}..{start_address + quantity - 1}: {response}")
+            error = UnsupportedRequest if response is not None and response.exception_code in PERMANENT_EXCEPTION_CODES else RequestRejected
+            raise error(f"Inverter refused registers {start_address}..{start_address + quantity - 1}: {response}")
         expected = quantity * 2
         payload = self._payload(response)
         if len(payload) != expected:
@@ -169,17 +186,25 @@ class Sun2000:
         Only a refusal triggers that fallback. When the connection itself is in trouble,
         replacing one request by twelve would put more load on a device that is already
         struggling, so such an error is passed on and the caller decides.
+
+        A group the device does not support is remembered and read register by register
+        from then on, so the refusal costs one request and one log line, not one per cycle.
         """
         values = {}
         for group in self._group_registers(registers):
-            try:
-                values.update(self.read_block(group))
-            except RequestRejected as e:
-                first = group[0].value.address
-                last = group[-1].value.address + group[-1].value.quantity - 1
-                self.logger.warning(f"Block read of registers {first}..{last} failed ({e}), falling back to single reads")
-                for register in group:
-                    values[register] = self.read(register)
+            key = tuple(group)
+            if self.block_read and key not in self.rejected_groups:
+                try:
+                    values.update(self.read_block(group))
+                    continue
+                except RequestRejected as e:
+                    first = group[0].value.address
+                    last = group[-1].value.address + group[-1].value.quantity - 1
+                    self.logger.warning(f"Block read of registers {first}..{last} failed ({e}), falling back to single reads")
+                    if isinstance(e, UnsupportedRequest):
+                        self.rejected_groups.add(key)
+            for register in group:
+                values[register] = self.read(register)
         return values
 
     @staticmethod
