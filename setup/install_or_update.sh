@@ -10,6 +10,7 @@ if [ "$1" == "dev" ] ; then
     URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/archive/refs/heads/main.zip"
 elif [ -z "$1" ]; then
     # latest release
+    PICKED_VERSION="latest"
     URL="https://github.com/kcbam/dbus-huaweisun2000-pvinverter/releases/latest/download/project.zip"
 elif [[ "$1" =~ ^v ]]; then
     PICKED_VERSION="$1"
