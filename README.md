@@ -46,6 +46,17 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
    If you can't change the settings via the GUI, you can override the settings via a config file by creating a file called `override_config.py`. Copy the `example_override_config.py` to `override_config.py` and adjust the values as needed. Note that this will override the settings in the GUI at any time and changing settings in the GUI will not have any effect.
 
+## Troubleshooting
+
+In case you need an older version, you can install it (for example, replace the version in the end with the one you want):
+
+   ```bash
+   wget -qO- https://raw.githubusercontent.com/kcbam/dbus-huaweisun2000-pvinverter/main/setup/install_or_update.sh | bash -s v1.6.1
+   ```
+
+Check https://github.com/kcbam/dbus-huaweisun2000-pvinverter/tags for which versions exist.
+
+
 ## Debugging
 
 If things don't work: check Modbus TCP Connection to the inverter
