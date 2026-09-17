@@ -36,7 +36,10 @@ class DbusRunServices:
         self.trials = 0
 
     def run(self):
-        GLib.timeout_add(self.settings.get('update_time_ms'), self._update)  # pause in ms before the next request
+        # This is the cycle time, not a pause added after each cycle: the timer counts from
+        # the start of a run. A run that finishes earlier waits for the rest of the interval,
+        # a run that takes longer simply delays the next one.
+        GLib.timeout_add(self.settings.get('update_time_ms'), self._update)
         self.logger.info('Connected to dbus, switching over to MainLoop and waiting for updates')
         self.logger.info('Enable DEBUG logging or use the "dbus-spy" command to inspect data updates on DBus if needed.')
         mainloop = GLib.MainLoop()
@@ -215,7 +218,8 @@ def main():
                                      system_type=settings.get("system_type"),
                                      max_retries=settings.get("max_retries"),
                                      backoff_in_seconds=settings.get("backoff_in_seconds"),
-                                     backoff_factor=settings.get("backoff_factor"))
+                                     backoff_factor=settings.get("backoff_factor"),
+                                     block_read=bool(settings.get("block_read")))
 
     while True:
         staticdata = modbus.getStaticData()

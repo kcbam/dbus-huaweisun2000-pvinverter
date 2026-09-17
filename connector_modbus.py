@@ -49,12 +49,18 @@ alert1Readable = {
 
 
 class ModbusDataCollector2000:
-    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0):
-        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20, max_retries=max_retries, backoff_in_seconds=backoff_in_seconds, backoff_factor=backoff_factor)
+    def __init__(self, logger, modbus_version, host='192.168.200.1', port=6607, modbus_unit=0, pcf_override=0.995, system_type=0, max_retries=3, backoff_in_seconds=1, backoff_factor=2.0, block_read=True):
+        self.invSun2000 = inverter.Sun2000(logger=logger, host=host, port=port, modbus_unit=modbus_unit, timeout=20, max_retries=max_retries, backoff_in_seconds=backoff_in_seconds, backoff_factor=backoff_factor, block_read=block_read)
         self.logger = logger
         self.pcf_override = pcf_override
         self.system_type = system_type
         self.this_inverter = inverter_registers.InverterRegister.get(modbus_version)
+        # Registers whose value cannot change while the inverter runs. They are read on
+        # the first cycle and served from here afterwards. Without this, the nameplate
+        # rating alone costs a whole extra Modbus request per cycle, because it sits far
+        # outside the block of live measurements and can never share a request with them.
+        self.static_registers = (self.this_inverter.MaximumActivePower,)
+        self.static_values = {}
 
     def getInverterData(self):
         # the connect() method internally checks whether there's already a connection
@@ -88,11 +94,31 @@ class ModbusDataCollector2000:
                     '/Ac/MaxPower': {'initial': 0, "sun2000": self.this_inverter.MaximumActivePower},
                 }
 
-            for k, v in dbuspath.items():
-                s = v.get("sun2000")
-                data[k] = self.invSun2000.read(s)
+            # All of these are read with as few Modbus requests as possible. Asking the
+            # inverter for every register on its own costs about 300 ms per register on
+            # some models, which limits the whole cycle to several seconds.
+            status_register = self.this_inverter.DeviceStatus
+            energy_register = self.this_inverter.AccumulatedEnergyYield
+            power_factor_register = self.this_inverter.PowerFactor
+            frequency_register = self.this_inverter.GridFrequency
 
-            data['/Status'] = self.invSun2000.read_formatted(self.this_inverter.DeviceStatus)
+            registers = [v.get("sun2000") for v in dbuspath.values()]
+            registers += [status_register, energy_register, power_factor_register, frequency_register]
+
+            # Anything already known to be constant is dropped from the request.
+            registers = [r for r in registers if r not in self.static_values]
+            values = self.invSun2000.read_registers(registers)
+            values.update(self.static_values)
+
+            for register in self.static_registers:
+                if register not in self.static_values and register in values:
+                    self.static_values[register] = values[register]
+                    self.logger.info(f"Read {register.name} once, will reuse {values[register]} from now on")
+
+            for k, v in dbuspath.items():
+                data[k] = values[v.get("sun2000")]
+
+            data['/Status'] = self.invSun2000.format_value(status_register, values[status_register])
 
             # Matching the DeviceStatus code mapping to the
             # codes for 'pvinverter' from the Victron dbus manual
@@ -132,16 +158,16 @@ class ModbusDataCollector2000:
                 case _:
                     data['/StatusCode'] = 7  # Let's put the default to "running" (7)
 
-            energy_forward = self.invSun2000.read(self.this_inverter.AccumulatedEnergyYield)
+            energy_forward = values[energy_register]
             data['/Ac/Energy/Forward'] = energy_forward
 
-            cosphi = float(self.invSun2000.read((self.this_inverter.PowerFactor)))
+            cosphi = float(values[power_factor_register])
             # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
             # from the config
             if cosphi < 0.8:
                 cosphi = self.pcf_override
 
-            freq = self.invSun2000.read(self.this_inverter.GridFrequency)
+            freq = values[frequency_register]
 
             # There is no Modbus register for the phases
             data['/Ac/L1/Frequency'] = freq
@@ -224,14 +250,21 @@ class ModbusDataCollector2000:
                     '/Ac/L1/Voltage': {'initial': 0, "sun2000": meter_registers.MeterRegister.APhaseVoltage},
                 }
 
-            data['/Ac/Energy/Forward'] = self.invSun2000.read(meter_registers.MeterRegister.ActivePower) / 1000
-            data['/Ac/Energy/Reverse'] = self.invSun2000.read(meter_registers.MeterRegister.ReverseActivePower) / 1000
+            # Same as for the inverter: one grouped read instead of one request per register.
+            reverse_register = meter_registers.MeterRegister.ReverseActivePower
+            power_factor_register = meter_registers.MeterRegister.PowerFactor
+
+            registers = [v.get("sun2000") for v in dbuspath.values()]
+            registers += [meter_registers.MeterRegister.ActivePower, reverse_register, power_factor_register]
+            values = self.invSun2000.read_registers(registers)
+
+            data['/Ac/Energy/Forward'] = values[meter_registers.MeterRegister.ActivePower] / 1000
+            data['/Ac/Energy/Reverse'] = values[reverse_register] / 1000
 
             for k, v in dbuspath.items():
-                s = v.get("sun2000")
-                data[k] = self.invSun2000.read(s)
+                data[k] = values[v.get("sun2000")]
 
-            cosphi = abs(float(self.invSun2000.read(meter_registers.MeterRegister.PowerFactor)))
+            cosphi = abs(float(values[power_factor_register]))
             # This is a sanity check, if the value is too low, it's probably wrong and we override it with the value
             # from the config
             if cosphi < 0.8:
@@ -305,7 +338,8 @@ if __name__ == "__main__":
                                         system_type=settings.get("system_type"),
                                         max_retries=settings.get("max_retries"),
                                         backoff_in_seconds=settings.get("backoff_in_seconds"),
-                                        backoff_factor=settings.get("backoff_factor"))
+                                        backoff_factor=settings.get("backoff_factor"),
+                                        block_read=bool(settings.get("block_read")))
     static_data = collector.getStaticData()
     logger.debug("Static data:")
     for k, v in static_data.items():
