@@ -235,7 +235,7 @@ def main():
             break
 
     try:
-        logger.info("Starting up")
+        logger.info(f"Starting up (version {get_version(logger)})")
 
         # formatting
         def _kwh(p, v):
