@@ -4,6 +4,33 @@
 
 * GitHub: <https://github.com/kcbam/dbus-huaweisun2000-pvinverter/>
 
+## v1.8.2
+
+Log the version number on startup.
+
+## v1.8.1
+
+Fixed bug in the installer when installing the latest release.
+
+## v1.8.0
+
+Registers are now read in blocks instead of one Modbus request per register
+(#28, by @okuegow). A SUN2000 answers a request in about 300 ms no matter how
+many registers it covers, so a cycle on a SUN2000-50KTL-M3 dropped from
+about 5 s to about 1 s, and `UpdateTimeMS` down to about 1000 now takes effect.
+If a model rejects a block, the driver falls back to single reads for that group
+and warns once per start. Block reads can be switched off with the new setting
+"Read registers in blocks" (`BlockRead`, default on).
+
+Failed reads now raise an error instead of being reported as 0, so read errors
+no longer show up as 0 W on D-Bus and in the yield statistics.
+
+Added retries with exponential backoff for flaky connections (`MaxRetries`,
+`BackoffInSeconds`, `BackoffFactor`). Fixed the energy counter for single phase
+inverters. Fixed `override_config.py` so it takes effect right away.
+The installer can now install a specific version (`bash -s v1.6.1`) or from any
+zip URL, e.g. a PR branch.
+
 ## v1.6.0
 
 Reworked logging completely. Fixed the StatusCode and Status fields to show
