@@ -4,6 +4,10 @@
 
 * GitHub: <https://github.com/kcbam/dbus-huaweisun2000-pvinverter/>
 
+## v1.8.3
+
+Fix service/run file so that driver shutdown and restart work properly (by @okuegow)
+
 ## v1.8.2
 
 Log the version number on startup.
@@ -28,8 +32,13 @@ no longer show up as 0 W on D-Bus and in the yield statistics.
 Added retries with exponential backoff for flaky connections (`MaxRetries`,
 `BackoffInSeconds`, `BackoffFactor`). Fixed the energy counter for single phase
 inverters. Fixed `override_config.py` so it takes effect right away.
+
 The installer can now install a specific version (`bash -s v1.6.1`) or from any
 zip URL, e.g. a PR branch.
+
+## v1.7.0
+
+Fix calculations for single phase inverters (by @SB10900)
 
 ## v1.6.0
 
