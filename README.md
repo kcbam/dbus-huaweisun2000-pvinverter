@@ -56,6 +56,11 @@ In case you need an older version, you can install it (for example, replace the 
 
 Check https://github.com/kcbam/dbus-huaweisun2000-pvinverter/tags for which versions exist.
 
+An SDongle typically accepts only one Modbus TCP session at a time. Anything else
+polling it, like Home Assistant, evcc or a second copy of this driver, will cause connection
+errors on both sides. Rapid bursts of requests can also wedge the SDongle so that it accepts
+connections but closes them without answering; in that case only restarting the inverter helped.
+
 
 ## Debugging
 
@@ -117,6 +122,7 @@ rm -r /data/dbus-huaweisun2000-pvinverter/
 
 - DenkBrettl
 - ricpax (Energy meter code)
+- okuegow (block reads)
 
 ### Used libraries
 
