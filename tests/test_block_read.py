@@ -14,6 +14,7 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 
 from sun2000_modbus import datatypes
 from sun2000_modbus import inverter
+from sun2000_modbus.inverter_registers import InverterRegisterV3
 from sun2000_modbus.registers import AccessType, Register
 
 
@@ -138,9 +139,13 @@ class ClientStub:
     def __init__(self, answer):
         self.answer = answer
         self.calls = []
+        self.closed = 0
 
     def is_socket_open(self):
         return True
+
+    def close(self):
+        self.closed += 1
 
     def connect(self):
         return True
@@ -267,3 +272,41 @@ def test_a_busy_device_does_not_get_its_block_reads_switched_off():
     sun2000.read_registers(registers)
 
     assert len(sun2000.inverter.calls) == calls_after_first_cycle + 1, "the second cycle is a single block read again"
+
+
+class Transaction:
+    tid = 7
+
+
+def answer_to(tid, value, quantity=2):
+    """A read answer of `quantity` registers carrying the transaction number `tid`."""
+    class Answer:
+        transaction_id = tid
+
+        def isError(self):
+            return False
+
+        def encode(self):
+            return bytes([quantity * 2]) + value.to_bytes(quantity * 2, "big")
+    return Answer()
+
+
+def test_an_answer_to_another_transaction_is_dropped_and_the_connection_renewed():
+    """ZDD12, 28.09.2026: after a short answer, every answer of the SDongle belonged to the request before."""
+    answers = iter([answer_to(6, 900), answer_to(7, 0)])
+    sun2000 = make_inverter()
+    sun2000.max_retries = 1
+    sun2000.inverter = ClientStub(lambda address, quantity: next(answers))
+    sun2000.inverter.transaction = Transaction()
+
+    assert sun2000.read(InverterRegisterV3.ScheduleInstructionValidDuration) == 0
+    assert sun2000.inverter.closed == 1
+
+
+def test_a_truncated_answer_renews_the_connection():
+    sun2000 = make_inverter()
+    sun2000.inverter = ClientStub(lambda address, quantity: answer_to(None, 1, quantity=1))
+
+    with pytest.raises(inverter.RequestRejected):
+        sun2000.read_block([InverterRegisterV3.ScheduleInstructionValidDuration])
+    assert sun2000.inverter.closed == 1
