@@ -46,6 +46,54 @@ To further use the data, the mqtt broker from Venus OS can be used.
 
    If you can't change the settings via the GUI, you can override the settings via a config file by creating a file called `override_config.py`. Copy the `example_override_config.py` to `override_config.py` and adjust the values as needed. Note that this will override the settings in the GUI at any time and changing settings in the GUI will not have any effect.
 
+## Power limit for ESS (experimental, off by default)
+
+With "Allow ESS to limit the inverter" switched on, the driver publishes `/Ac/PowerLimit`,
+so ESS can limit the inverter's feed-in the same way it does with a Fronius inverter.
+Then set a feed-in limit in the ESS settings. Tested on SUN2000-30KTL-M3 and SUN2000-50KTL-M3.
+
+Without the V1 Remote Console, switch it on with
+`dbus -y com.victronenergy.settings /Settings/HuaweiSUN2000/PowerLimitEnabled SetValue 1`
+or `settings["power_limit_enabled"] = 1` in `override_config.py`.
+
+The only register that limits these inverters exactly is 40125 (active power in percent of
+the rated power), and the inverter stores it in flash. The driver therefore limits how often it
+writes:
+
+- The limit is rounded up to steps of 1 % of the rated power. Rounding down would leave
+  the inverter below what ESS asks for; ESS then covers the load from the battery and
+  never asks for more.
+- Two writes are at least 15 s apart. ESS sends a new value every 5 s.
+- A lower step is written as soon as that allows. A higher step is written only after
+  ESS has allowed it for 30 s.
+- While ESS keeps asking for more after a step up, the next one comes sooner: as soon as
+  the inverter delivers the current step (it ramps up at a few hundred W/s) and ESS has
+  asked for more for 15 s since. When a battery covers the gap, ESS asks for only a few
+  hundred W more each time, so the steps then double (1, 2, 4 %, then 4 % each) and an
+  11 kW load is followed in about 3 minutes instead of 12. The last one can overshoot by
+  up to 4 %, taken back 15 s later. When ESS asks for several steps more, it gets the
+  least it asked for within those 15 s.
+- ESS has to ask for more than 100 W above the current step. At a steady state it sits
+  a few W above, and the limit would otherwise swing between two steps.
+- Going up stops after 120 writes within an hour. Going down always happens.
+- While limited, the step is written again every 10 minutes. The inverter itself goes back
+  to 100 % 15 minutes after the last write (register 42019), should the driver or the Cerbo
+  stop. The driver lifts the limit itself when it is stopped or restarts for a changed
+  setting, and after 60 s without a new value from ESS it goes back to full power (after
+  the 30 s wait).
+
+On start the driver sets register 42014 (remote power scheduling) to 1, which the inverter
+needs to accept 40125, and 42019 to the fallback time. Both are written only if they differ.
+A limit left from before a crash is kept until ESS asks for more, so the restart does not
+let the inverter run at full power. `/Ac/PowerLimit` shows the limit in effect, not the
+value ESS asked for.
+Step size, wait time, fallback time and the hourly budget can be changed in
+`override_config.py`, see `example_override_config.py`. Needs Venus OS with velib from
+2023 or later.
+
+This is not a fast control. If your installation needs zero feed-in within seconds, use
+a solution with an energy meter at the inverter instead.
+
 ## Troubleshooting
 
 In case you need an older version, you can install it (for example, replace the version in the end with the one you want):
