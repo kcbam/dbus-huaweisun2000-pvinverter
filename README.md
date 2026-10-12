@@ -52,6 +52,12 @@ With "Allow ESS to limit the inverter" switched on, the driver publishes `/Ac/Po
 so ESS can limit the inverter's feed-in the same way it does with a Fronius inverter.
 Then set a feed-in limit in the ESS settings. Tested on SUN2000-30KTL-M3 and SUN2000-50KTL-M3.
 
+You need this when the site may not feed all its PV into the grid: zero feed-in, or a
+feed-in cap from the grid operator. ESS limits the inverter only while a feed-in limit is
+set and the battery cannot take the surplus. Without a feed-in limit ESS never writes
+`/Ac/PowerLimit` and the switch has no effect. Off-grid is not affected: there the Multi
+limits the inverter by shifting the frequency, as before.
+
 Without the V1 Remote Console, switch it on with
 `dbus -y com.victronenergy.settings /Settings/HuaweiSUN2000/PowerLimitEnabled SetValue 1`
 or `settings["power_limit_enabled"] = 1` in `override_config.py`.
