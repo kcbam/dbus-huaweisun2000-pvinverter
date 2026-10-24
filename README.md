@@ -172,11 +172,11 @@ rm -r /data/dbus-huaweisun2000-pvinverter/
 
 ## Thank you
 
-### Contributers
+### Contributors
 
-- DenkBrettl
+- DenkBrettl (current maintainer)
 - ricpax (Energy meter code)
-- okuegow (block reads)
+- okuegow (block reads, ESS power limiting)
 
 ### Used libraries
 

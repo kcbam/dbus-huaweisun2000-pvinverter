@@ -4,6 +4,10 @@
 
 * GitHub: <https://github.com/kcbam/dbus-huaweisun2000-pvinverter/>
 
+## v1.9.0
+
+Add ability to limit ESS grid feed-in power (by @okuegow)
+
 ## v1.8.3
 
 Fix service/run file so that driver shutdown and restart work properly (by @okuegow)
