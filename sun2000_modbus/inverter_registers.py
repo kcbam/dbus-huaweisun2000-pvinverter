@@ -214,6 +214,9 @@ class InverterRegisterV3(Enum):
     # Startup = Register(40200, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.WO, None) # disabled because not readable (AccessType.WO)
     # Shutdown = Register(40201, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.WO, None) # disabled because not readable (AccessType.WO)
     GridCode = Register(42000, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RW, None)
+    # 0 = disabled, 1 = enabled. Must be 1, otherwise the inverter refuses writes to
+    # ActivePowerPercentageDerating (seen on SUN2000-30KTL-M3 and -50KTL-M3).
+    RemotePowerScheduling = Register(42014, 1, datatypes.DataType.UINT16_BE, 1, None, AccessType.RW, None)
     ReactivePowerChangeGradient = Register(42015, 2, datatypes.DataType.UINT32_BE, 1000, "%/s", AccessType.RW, None)
     ActivePowerChangeGradient = Register(42017, 2, datatypes.DataType.UINT32_BE, 1000, "%/s", AccessType.RW, None)
     ScheduleInstructionValidDuration = Register(42019, 2, datatypes.DataType.UINT32_BE, 1, "s", AccessType.RW, None)

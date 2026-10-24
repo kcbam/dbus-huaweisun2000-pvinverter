@@ -103,5 +103,10 @@ MbPage {
 			name: qsTr("Read registers in blocks")
 			bind: Utils.path(settings, "/BlockRead")
 		}
+
+		MbSwitch {
+			name: qsTr("Allow ESS to limit the inverter")
+			bind: Utils.path(settings, "/PowerLimitEnabled")
+		}
 	}
 }

@@ -17,22 +17,28 @@ import logging
 import sys
 import time
 import os
+import signal
+import math
 import logging_config
 from dbus.mainloop.glib import DBusGMainLoop
 import dbus
+import dbus.service
 from connector_modbus import ModbusDataCollector2000
 from settings import HuaweiSUN2000Settings
+from power_control import PowerControl
 
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
-from vedbus import VeDbusService
+from vedbus import VeDbusService, VeDbusItemExport
 
 
 class DbusRunServices:
-    def __init__(self, services_data, settings, logger):
+    def __init__(self, services_data, settings, logger, power_control=None):
         self.DBusServiceData = services_data
         self.settings = settings
         self.logger = logger
+        self.power_control = power_control
+        self.output = None  # the inverter's output as last read, None if that read failed
         self.trials = 0
 
     def run(self):
@@ -46,7 +52,15 @@ class DbusRunServices:
         mainloop.run()
 
     def _update(self):
-        for dbus_service in self.DBusServiceData.values():
+        # Written before reading, in the same thread, as the inverter takes only one Modbus session.
+        if self.power_control is not None:
+            level = self.power_control.step(time.monotonic(), self.output)
+            if level is not None:
+                with self.DBusServiceData['pvinverter']['service'] as s:
+                    s['/Ac/PowerLimit'] = self.power_control.limiter.watt(level)
+
+        self.output = None
+        for name, dbus_service in self.DBusServiceData.items():
             try:
                 data_collector = dbus_service['data']  # get the data collector function
                 data_values = data_collector()  # call the data collector function to get the latest data
@@ -61,6 +75,8 @@ class DbusRunServices:
                     sys.exit(0)  # Exit to force service restart...
             else:
                 self.trials = 0
+                if name == 'pvinverter':
+                    self.output = data_values.get('/Ac/Power')
                 with dbus_service['service'] as s:  # get the dbus service object
                     try:
                         # Preserve previous status so we can log changes later
@@ -167,9 +183,11 @@ def NewService(servicename, settings, logger, paths, devicedata, role='pvinverte
     _dbusservice.add_path('/StatusCode', 7)  # 0 = Startup, 7 = Running, 8 = Standby, 9 = Bootloading, 10 = Error
 
     for _path, _settings in paths.items():
+        # Only passed when needed, velib before 2023 does not know itemtype.
+        extra = {k: _settings[k] for k in ('itemtype', 'valuetype') if k in _settings}
         _dbusservice.add_path(
             _path, _settings['initial'], gettextcallback=_settings.get('textformat', lambda p, v: v), writeable=True,
-            onchangecallback=handlechangedvalue)
+            onchangecallback=handlechangedvalue, **extra)
 
     # For debugging
     for k, v in _dbusservice._dbusobjects.items():
@@ -201,6 +219,7 @@ def main():
     logger.info(f"Settings: CustomName '{settings.get('custom_name')}', Position '{settings.get('position')}'")
     logger.info(f"Settings: UpdateTimeMS '{settings.get('update_time_ms')}', PCFOverride '{settings.get('pcf_override')}'")
     logger.info(f"Settings: SystemType '{settings.get('system_type')}'")
+    logger.info(f"Settings: PowerLimitEnabled '{settings.get('power_limit_enabled')}'")
 
     while "255" in settings.get("modbus_host"):
         # This catches the initial setting and allows the service to be installed without configuring it first
@@ -233,6 +252,23 @@ def main():
         else:
             logger.info("Static device data: " + str(staticdata))
             break
+
+    power_control = None
+    if settings.get("power_limit_enabled") == 1:
+        power_control = PowerControl(modbus.invSun2000, modbus.this_inverter, logger,
+                                     revert_seconds=settings.get("power_limit_revert_seconds"),
+                                     step_percent=settings.get("power_limit_step_percent"),
+                                     hold_up_seconds=settings.get("power_limit_hold_up_seconds"),
+                                     max_writes_per_hour=settings.get("power_limit_max_writes_per_hour"))
+        if power_control.prepare(time.monotonic()):
+            def lift_limit_and_exit():
+                power_control.release()
+                os._exit(0)
+            # svc -d sends SIGTERM. Without this handler the process would die with the limit still set.
+            GLib.unix_signal_add(GLib.PRIORITY_HIGH, signal.SIGTERM, lift_limit_and_exit)
+            settings.before_exit = power_control.release
+        else:
+            power_control = None
 
     try:
         logger.info(f"Starting up (version {get_version(logger)})")
@@ -325,6 +361,34 @@ def main():
                 '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
             }
 
+        if power_control is not None:
+            class PowerLimitItem(VeDbusItemExport):
+                """Hands every write to the limiter, a repeated value included, and keeps the path
+                showing the limit in effect.
+
+                velib drops a write that equals the current value before any callback sees it.
+                ESS repeats an unchanged limit to show it still wants it, and the limiter falls
+                back to full power when it hears nothing for 60 s. The request itself is not
+                stored: the path is set by the driver after the inverter confirmed a step.
+                """
+                @dbus.service.method('com.victronenergy.BusItem', in_signature='v', out_signature='i')
+                def SetValue(self, newvalue):
+                    try:
+                        watt = float(newvalue)
+                    except (TypeError, ValueError):
+                        return 1  # NOT OK
+                    # NaN would crash the limiter outside of any exception guard. ESS never asks
+                    # for less than 0 W; anything below is a faulty writer, not a request to stop.
+                    if not math.isfinite(watt) or watt < 0:
+                        return 1  # NOT OK
+                    power_control.limiter.request(watt, time.monotonic())
+                    return 0  # OK
+
+            # valuetype: the driver's own values stay floats, the text formatting relies on it.
+            # Venus OS takes the mere existence of this path as "this inverter can be limited".
+            dbuspath_inv['/Ac/PowerLimit'] = {'initial': power_control.limiter.watt(power_control.limiter.level), 'textformat': _w,
+                                              'itemtype': PowerLimitItem, 'valuetype': float}
+
         DbusServices = {}
 
         inverter_service = NewService(servicename='com.victronenergy.pvinverter.sun2000',
@@ -363,12 +427,17 @@ def main():
         run_services = DbusRunServices(
             services_data=DbusServices,
             settings=settings,
-            logger=logger
+            logger=logger,
+            power_control=power_control
         )
         run_services.run()
 
     except Exception as e:
         logger.critical('Error at %s', 'main', exc_info=e)
+    finally:
+        # Also on sys.exit() from a failed read, which ends the main loop to restart the service.
+        if power_control is not None:
+            power_control.release()
 
 
 if __name__ == "__main__":

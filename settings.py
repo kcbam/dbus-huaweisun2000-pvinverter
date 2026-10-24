@@ -43,7 +43,14 @@ class HuaweiSUN2000Settings(object):
             "backoff_in_seconds": ["/Settings/HuaweiSUN2000/BackoffInSeconds", 1, 0, 100, 0],
             "backoff_factor": ["/Settings/HuaweiSUN2000/BackoffFactor", 2.0, 1.0, 10.0, 0],
             "block_read": ["/Settings/HuaweiSUN2000/BlockRead", 1, 0, 1, 0],
+            "power_limit_enabled": ["/Settings/HuaweiSUN2000/PowerLimitEnabled", 0, 0, 1, 0],
+            "power_limit_step_percent": ["/Settings/HuaweiSUN2000/PowerLimitStepPercent", 1, 1, 100, 0],
+            "power_limit_hold_up_seconds": ["/Settings/HuaweiSUN2000/PowerLimitHoldUpSeconds", 30, 0, 3600, 0],
+            "power_limit_revert_seconds": ["/Settings/HuaweiSUN2000/PowerLimitRevertSeconds", 900, 60, 86400, 0],
+            "power_limit_max_writes_per_hour": ["/Settings/HuaweiSUN2000/PowerLimitMaxWritesPerHour", 120, 1, 3600, 0],
         }
+        # Called before the service exits on a changed setting, e.g. to lift a power limit.
+        self.before_exit = None
         self.dbus_conn = self._dbusconnection()
         self.settings = SettingsDevice(bus=self.dbus_conn, supportedSettings=supported_settings, eventCallback=self._handle_changed_setting)
         try:
@@ -72,6 +79,8 @@ class HuaweiSUN2000Settings(object):
         self.logger.info("Exiting due to new setting. The service will get restarted and pick up the new setting.")
         # I consider this to be a bit of a hack, but it works for now. If there are config changes, the
         # service exits and gets restarted and thus picks up the new settings values.
+        if self.before_exit is not None:
+            self.before_exit()
         os._exit(1)
 
     def get(self, setting):
