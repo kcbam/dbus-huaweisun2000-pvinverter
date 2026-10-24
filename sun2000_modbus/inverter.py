@@ -5,8 +5,10 @@ import time
 
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.exceptions import ModbusIOException, ConnectionException
+from pymodbus.register_write_message import WriteMultipleRegistersResponse, WriteSingleRegisterResponse
 
 from . import datatypes
+from .registers import AccessType
 
 
 class RequestRejected(ModbusIOException):
@@ -83,6 +85,20 @@ class Sun2000:
         """Strip the leading byte count from a read response."""
         return response.encode()[1:]
 
+    def _check_transaction(self, response):
+        """Reject an answer that belongs to another request, and start over with a new connection.
+
+        The SDongle of a SUN2000-30KTL-M3 answered with the value of an earlier request, or with
+        one meant for another Modbus client (ZDD12, 28.09.2026), and pymodbus 2.5 passes such an
+        answer on. The answers that were still on their way would then shift every later one, so
+        the connection is closed as well.
+        """
+        expected = getattr(getattr(self.inverter, "transaction", None), "tid", None)
+        received = getattr(response, "transaction_id", None)
+        if expected is not None and received is not None and received != expected:
+            self.inverter.close()
+            raise ModbusIOException(f"Answer to transaction {received} while waiting for {expected}")
+
     def _check_response(self, response, start_address, quantity):
         """Reject anything that is not a complete, successful read response.
 
@@ -93,12 +109,14 @@ class Sun2000:
         """
         if isinstance(response, ModbusIOException):
             raise response
+        self._check_transaction(response)
         if response is None or response.isError():
             error = UnsupportedRequest if response is not None and response.exception_code in PERMANENT_EXCEPTION_CODES else RequestRejected
             raise error(f"Inverter refused registers {start_address}..{start_address + quantity - 1}: {response}")
         expected = quantity * 2
         payload = self._payload(response)
         if len(payload) != expected:
+            self.inverter.close()  # the rest of the answer may still come and would shift the next one
             raise RequestRejected(f"Inverter returned {len(payload)} bytes for registers {start_address}..{start_address + quantity - 1}, expected {expected}")
 
     def read_raw_value(self, register):
@@ -139,6 +157,92 @@ class Sun2000:
             return raw_value
         else:
             return raw_value / register.value.gain
+
+    @staticmethod
+    def _encode_words(register, raw):
+        """Split an integer register value into the 16 bit words Modbus sends, high word first."""
+        bits = 16 * register.value.quantity
+        if register.value.data_type in (datatypes.DataType.UINT16_BE, datatypes.DataType.UINT32_BE):
+            low, high = 0, 2 ** bits - 1
+        elif register.value.data_type in (datatypes.DataType.INT16_BE, datatypes.DataType.INT32_BE):
+            low, high = -2 ** (bits - 1), 2 ** (bits - 1) - 1
+        else:
+            raise ValueError(f"Writing {register.value.data_type} registers is not supported")
+        if not low <= raw <= high:
+            raise ValueError(f"{raw} does not fit into register {register.value.address}")
+        raw &= 2 ** bits - 1
+        return [(raw >> (16 * i)) & 0xFFFF for i in reversed(range(register.value.quantity))]
+
+    def _check_write_response(self, response, address, words):
+        """Accept only the inverter's confirmation of exactly this write.
+
+        Another Modbus client at the SDongle can get its answers mixed up with ours, so
+        anything other than an echo of our own address and value is treated as a failure.
+        A multiple write is confirmed with address and count only, the value is not echoed.
+        """
+        if isinstance(response, ModbusIOException):
+            raise response
+        self._check_transaction(response)
+        if response is None or response.isError():
+            error = UnsupportedRequest if response is not None and response.exception_code in PERMANENT_EXCEPTION_CODES else RequestRejected
+            raise error(f"Inverter refused write to register {address}: {response}")
+        if len(words) == 1:
+            confirmed = isinstance(response, WriteSingleRegisterResponse) and response.address == address and response.value == words[0]
+        else:
+            confirmed = isinstance(response, WriteMultipleRegistersResponse) and response.address == address and response.count == len(words)
+        if not confirmed:
+            self.inverter.close()  # the real confirmation may still come and would shift the next answer
+            raise RequestRejected(f"Unexpected answer to write of {words} to register {address}: {response}")
+
+    def write(self, register, value, max_retries=None):
+        """Write a value to a holding register, gain applied, and wait for the inverter to confirm it.
+
+        A refusal for good (illegal address, value, function) is raised at once, since the
+        inverter would refuse the same write again. Everything else is retried like a read.
+        Writing the same absolute value twice does no harm, so a retry is safe.
+        `max_retries` overrides the instance setting, 0 means a single attempt.
+        """
+        if register.value.access_type not in (AccessType.RW, AccessType.WO):
+            raise ValueError(f"Register {register.name} is not writable")
+        raw = round(value * register.value.gain) if register.value.gain is not None else value
+        words = self._encode_words(register, raw)
+        address = register.value.address
+        max_retries = self.max_retries if max_retries is None else max_retries
+
+        retries = 0
+        backoff = self.backoff_in_seconds
+        while True:
+            if not self.isConnected():
+                self.connect()
+
+            if not self.isConnected():
+                if retries >= max_retries:
+                    raise ValueError('Inverter is not connected')
+                self.logger.warning(f"Inverter not connected, retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
+
+            try:
+                if len(words) == 1:
+                    response = self.inverter.write_register(address, words[0], unit=self.modbus_unit)
+                else:
+                    response = self.inverter.write_registers(address, words, unit=self.modbus_unit)
+                self._check_write_response(response, address, words)
+            except UnsupportedRequest:
+                raise
+            except (ConnectionException, ModbusIOException) as e:
+                self.logger.error(f"Write to register {address} failed: {e}")
+                if retries >= max_retries:
+                    raise
+                self.logger.warning(f"Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                retries += 1
+                backoff *= self.backoff_factor
+                continue
+
+            return
 
     def read_formatted(self, register, use_locale=False):
         return self.format_value(register, self.read(register), use_locale)

@@ -33,4 +33,19 @@ class ConfigOverride:
         # 1 = read the registers of a cycle with as few Modbus requests as possible (fast),
         # 0 = one request per register. Only needed if your model misbehaves on block reads.
         settings["block_read"] = 1
+        # 1 = let ESS limit the inverter's power via /Ac/PowerLimit (writes register 40125).
+        # Off by default: the inverter stores the limit in flash, so it is written in coarse
+        # steps and rarely. See README.
+        settings["power_limit_enabled"] = 0
+        # Size of a limit step in percent of the rated power. Must divide 100.
+        # The limit is rounded up to the next step.
+        settings["power_limit_step_percent"] = 1
+        # A higher step is written only after ESS has allowed it for this long.
+        settings["power_limit_hold_up_seconds"] = 30
+        # The inverter goes back to 100 % by itself this long after the last write (42019),
+        # should the driver stop. While limited, the driver writes again after 2/3 of it.
+        settings["power_limit_revert_seconds"] = 900
+        # Going up stops when this many writes happened within the last hour.
+        # Going down and refreshing a limit always happen.
+        settings["power_limit_max_writes_per_hour"] = 120
         return settings
