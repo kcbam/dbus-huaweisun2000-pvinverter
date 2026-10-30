@@ -31,7 +31,10 @@ else
     sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
 fi
 
-QT_QUICK_VERSION="`grep "import QtQuick" /opt/victronenergy/gui/qml/main.qml | cut -d ' ' -f 3`"
+# main.qml was renamed to Main.qml in newer Venus OS versions
+MAIN_QML=/opt/victronenergy/gui/qml/Main.qml
+[ -f "$MAIN_QML" ] || MAIN_QML=/opt/victronenergy/gui/qml/main.qml
+QT_QUICK_VERSION="`grep -m 1 "^import QtQuick [0-9]" $MAIN_QML | cut -d ' ' -f 3`"
 if [ -z "${QT_QUICK_VERSION}" ]; then
     echo "WARNING: Couldn't determine QtQuick version, assuming version 2"
     QT_QUICK_VERSION=2
@@ -41,8 +44,16 @@ for QML_FILE in $SCRIPT_DIR/gui/*.qml; do
     cat ${QML_FILE} | sed -e s/%%QT_QUICK_VERSION%%/${QT_QUICK_VERSION}/g > /opt/victronenergy/gui/qml/`basename ${QML_FILE}`
 done
 
-# As we've modified the GUI, we need to restart it
-svc -t /service/gui
+# As we've modified the GUI, we need to restart it. The service is called
+# start-gui on newer Venus OS versions.
+if [ -d /service/start-gui ]; then
+    svc -t /service/start-gui
+else
+    svc -t /service/gui
+fi
 
-# We'll restart the logger as we might have changed the run file
-svc -t /service/$SERVICE_NAME/log
+# We'll restart the logger as we might have changed the run file. On a fresh
+# install svscan hasn't started it yet, so there's nothing to restart.
+if svok /service/$SERVICE_NAME/log; then
+    svc -t /service/$SERVICE_NAME/log
+fi
