@@ -4,6 +4,10 @@
 
 * GitHub: <https://github.com/kcbam/dbus-huaweisun2000-pvinverter/>
 
+## v1.9.1
+
+Several fixes on the installer to make it more resilient and less noisy (#33, #34, #35 by @okuegow)
+
 ## v1.9.0
 
 New: ESS can now limit the inverter's feed-in (#32, by @okuegow)
