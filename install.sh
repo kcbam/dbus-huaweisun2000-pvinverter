@@ -44,8 +44,13 @@ for QML_FILE in $SCRIPT_DIR/gui/*.qml; do
     cat ${QML_FILE} | sed -e s/%%QT_QUICK_VERSION%%/${QT_QUICK_VERSION}/g > /opt/victronenergy/gui/qml/`basename ${QML_FILE}`
 done
 
-# As we've modified the GUI, we need to restart it
-svc -t /service/gui
+# As we've modified the GUI, we need to restart it. The service is called
+# start-gui on newer Venus OS versions.
+if [ -d /service/start-gui ]; then
+    svc -t /service/start-gui
+else
+    svc -t /service/gui
+fi
 
 # We'll restart the logger as we might have changed the run file
 svc -t /service/$SERVICE_NAME/log
