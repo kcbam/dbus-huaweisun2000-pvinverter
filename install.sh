@@ -31,7 +31,10 @@ else
     sed -i "/model: VisibleItemModel/ r $SCRIPT_DIR/gui/menu_item.txt" $invertersSettingsFile
 fi
 
-QT_QUICK_VERSION="`grep "import QtQuick" /opt/victronenergy/gui/qml/main.qml | cut -d ' ' -f 3`"
+# main.qml was renamed to Main.qml in newer Venus OS versions
+MAIN_QML=/opt/victronenergy/gui/qml/Main.qml
+[ -f "$MAIN_QML" ] || MAIN_QML=/opt/victronenergy/gui/qml/main.qml
+QT_QUICK_VERSION="`grep -m 1 "^import QtQuick [0-9]" $MAIN_QML | cut -d ' ' -f 3`"
 if [ -z "${QT_QUICK_VERSION}" ]; then
     echo "WARNING: Couldn't determine QtQuick version, assuming version 2"
     QT_QUICK_VERSION=2
